@@ -1,5 +1,7 @@
 fastapi
+httpx
 openai
 pydantic
 pydantic_settings
+requests
 uvicorn
