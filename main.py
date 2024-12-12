@@ -56,10 +56,12 @@ async def get_next_key():
     async with key_cycle_lock:
         return next(key_cycle)
 
+
 async def is_key_valid(key):
     """检查key是否有效"""
     async with failure_count_lock:
         return key_failure_counts[key] < MAX_FAILURES
+
 
 async def reset_failure_counts():
     """重置所有key的失败计数"""
@@ -67,27 +69,31 @@ async def reset_failure_counts():
         for key in key_failure_counts:
             key_failure_counts[key] = 0
 
+
 async def get_next_working_key():
     """获取下一个可用的API key"""
     initial_key = await get_next_key()
     current_key = initial_key
-    
+
     while True:
         if await is_key_valid(current_key):
             return current_key
-            
+
         current_key = await get_next_key()
         if current_key == initial_key:  # 已经循环了一圈
             await reset_failure_counts()
             return current_key
+
 
 async def handle_api_failure(api_key):
     """处理API调用失败"""
     async with failure_count_lock:
         key_failure_counts[api_key] += 1
         if key_failure_counts[api_key] >= MAX_FAILURES:
-            logger.warning(f"API key {api_key} has failed {MAX_FAILURES} times, switching to next key")
-    
+            logger.warning(
+                f"API key {api_key} has failed {MAX_FAILURES} times, switching to next key"
+            )
+
     # 在锁外获取新的key
     return await get_next_working_key()
 
@@ -145,9 +151,11 @@ def get_gemini_models(api_key):
 def convert_to_openai_models_format(gemini_models):
     openai_format = {"object": "list", "data": []}
 
+    # 添加常规模型
     for model in gemini_models.get("models", []):
+        model_id = model["name"].split("/")[-1]
         openai_model = {
-            "id": model["name"].split("/")[-1],  # 取最后一部分作为ID
+            "id": model_id,
             "object": "model",
             "created": int(datetime.now(timezone.utc).timestamp()),  # 使用当前时间戳
             "owned_by": "google",  # 假设所有Gemini模型都由Google拥有
@@ -156,6 +164,12 @@ def convert_to_openai_models_format(gemini_models):
             "parent": None,  # Gemini API可能没有直接对应的父模型信息
         }
         openai_format["data"].append(openai_model)
+
+        # 如果模型在 MODEL_SEARCH 中,添加带 search 后缀的版本
+        if model_id in config.settings.MODEL_SEARCH:
+            search_model = openai_model.copy()
+            search_model["id"] = f"{model_id}-search"
+            openai_format["data"].append(search_model)
 
     return openai_format
 
@@ -240,12 +254,16 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
     api_key = await get_next_working_key()
     logger.info(f"Chat completion request - Model: {request.model}")
     retries = 0
-    
+
     while retries < MAX_RETRIES:
         try:
             logger.info(f"Attempt {retries + 1} with API key: {api_key}")
-            
-            if request.model in config.settings.MODEL_SEARCH:
+
+            # 修改判断条件,检查模型名是否以 -search 结尾
+            if request.model.endswith("-search"):
+                # 去掉 -search 后缀
+                gemini_model = request.model[:-7]
+
                 # Gemini API调用部分
                 gemini_messages = convert_messages_to_gemini_format(request.messages)
                 # 调用Gemini API
@@ -256,7 +274,7 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
                     },
                     "tools": [{"googleSearch": {}}],
                 }
-                
+
                 if request.stream:
                     logger.info("Streaming response enabled")
 
@@ -266,28 +284,38 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
                             try:
                                 async with httpx.AsyncClient() as client:
                                     stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{request.model}:streamGenerateContent?alt=sse&key={api_key}"
-                                    async with client.stream("POST", stream_url, json=payload) as response:
+                                    async with client.stream(
+                                        "POST", stream_url, json=payload
+                                    ) as response:
                                         if response.status_code == 429:
-                                            logger.warning(f"Rate limit reached for key: {api_key}")
+                                            logger.warning(
+                                                f"Rate limit reached for key: {api_key}"
+                                            )
                                             api_key = await handle_api_failure(api_key)
-                                            logger.info(f"Retrying with new API key: {api_key}")
+                                            logger.info(
+                                                f"Retrying with new API key: {api_key}"
+                                            )
                                             retries += 1
                                             if retries >= MAX_RETRIES:
                                                 yield f"data: {json.dumps({'error': 'Max retries reached'})}\n\n"
                                                 break
                                             continue
-                                            
+
                                         if response.status_code != 200:
-                                            logger.error(f"Error in streaming response: {response.status_code}")
+                                            logger.error(
+                                                f"Error in streaming response: {response.status_code}"
+                                            )
                                             yield f"data: {json.dumps({'error': f'API error: {response.status_code}'})}\n\n"
                                             break
-                                            
+
                                         async for line in response.aiter_lines():
                                             if line.startswith("data: "):
                                                 try:
                                                     chunk = json.loads(line[6:])
                                                     openai_chunk = convert_gemini_response_to_openai(
-                                                        chunk, request.model, stream=True
+                                                        chunk,
+                                                        request.model,
+                                                        stream=True,
                                                     )
                                                     if openai_chunk:
                                                         yield f"data: {json.dumps(openai_chunk)}\n\n"
@@ -303,8 +331,10 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
                                     yield f"data: {json.dumps({'error': 'Max retries reached'})}\n\n"
                                     break
                                 continue
-                                
-                    return StreamingResponse(content=generate(), media_type="text/event-stream")
+
+                    return StreamingResponse(
+                        content=generate(), media_type="text/event-stream"
+                    )
                 else:
                     # 非流式响应
                     async with httpx.AsyncClient() as client:
@@ -312,8 +342,10 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
                         response = await client.post(non_stream_url, json=payload)
                         gemini_response = response.json()
                         logger.info("Chat completion successful")
-                        return convert_gemini_response_to_openai(gemini_response, request.model)
-            
+                        return convert_gemini_response_to_openai(
+                            gemini_response, request.model
+                        )
+
             # OpenAI API调用部分
             client = openai.OpenAI(api_key=api_key, base_url=config.settings.BASE_URL)
             response = client.chat.completions.create(
@@ -322,16 +354,19 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
                 temperature=request.temperature,
                 stream=request.stream if hasattr(request, "stream") else False,
             )
-            
+
             if hasattr(request, "stream") and request.stream:
                 logger.info("Streaming response enabled")
 
                 async def generate():
                     for chunk in response:
                         yield f"data: {chunk.model_dump_json()}\n\n"
+
                 logger.info("Chat completion successful")
-                return StreamingResponse(content=generate(), media_type="text/event-stream")
-            
+                return StreamingResponse(
+                    content=generate(), media_type="text/event-stream"
+                )
+
             logger.info("Chat completion successful")
             return response
 
@@ -339,11 +374,14 @@ async def chat_completion(request: ChatRequest, authorization: str = Header(None
             logger.error(f"Error in chat completion: {str(e)}")
             api_key = await handle_api_failure(api_key)
             retries += 1
-            
+
             if retries >= MAX_RETRIES:
                 logger.error("Max retries reached, giving up")
-                raise HTTPException(status_code=500, detail="Max retries reached with all available API keys")
-            
+                raise HTTPException(
+                    status_code=500,
+                    detail="Max retries reached with all available API keys",
+                )
+
             logger.info(f"Retrying with new API key: {api_key}")
             continue
 
