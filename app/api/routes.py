@@ -1,5 +1,5 @@
+from http.client import HTTPException
 from fastapi import APIRouter, Depends, Header
-from typing import Optional
 import logging
 from fastapi.responses import StreamingResponse
 
@@ -97,3 +97,29 @@ async def embedding(
     except Exception as e:
         logger.error(f"Embedding request failed: {str(e)}")
         raise
+
+
+@router.get("/v1/keys/list")
+@router.get("/hf/v1/keys/list")
+async def get_keys_list(
+    authorization: str = Header(None),
+    token: str = Depends(security_service.verify_authorization),
+):
+    """获取有效和无效的API key列表"""
+    logger.info("Handling keys list request")
+    try:
+        keys_status = await key_manager.get_keys_by_status()
+        return {
+            "status": "success",
+            "data": {
+                "valid_keys": keys_status["valid_keys"],
+                "invalid_keys": keys_status["invalid_keys"]
+            },
+            "total": len(keys_status["valid_keys"]) + len(keys_status["invalid_keys"])
+        }
+    except Exception as e:
+        logger.error(f"Error getting keys list: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while fetching keys list"
+        )

@@ -32,7 +32,7 @@ class KeyManager:
                 self.key_failure_counts[key] = 0
 
     async def get_next_working_key(self) -> str:
-        """获取下一个可用的API key"""
+        """获取下一可用的API key"""
         initial_key = await self.get_next_key()
         current_key = initial_key
 
@@ -55,3 +55,21 @@ class KeyManager:
                 )
 
         return await self.get_next_working_key()
+
+    async def get_keys_by_status(self) -> dict:
+        """获取分类后的API key列表"""
+        valid_keys = []
+        invalid_keys = []
+        
+        async with self.failure_count_lock:
+            for key in self.api_keys:
+                masked_key = f"{key}"
+                if self.key_failure_counts[key] < self.MAX_FAILURES:
+                    valid_keys.append(masked_key)
+                else:
+                    invalid_keys.append(masked_key)
+        
+        return {
+            "valid_keys": valid_keys,
+            "invalid_keys": invalid_keys
+        }

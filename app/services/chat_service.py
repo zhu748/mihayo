@@ -174,6 +174,13 @@ class ChatService:
             "contents": gemini_messages,
             "generationConfig": {"temperature": temperature},
             "tools": tools,
+            "safetySettings": [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_NONE"},
+            ],
         }
 
         if stream:
@@ -241,39 +248,39 @@ class ChatService:
                 logger.error(f"Error in non-stream completion: {str(e)}")
                 raise
 
-    async def _openai_chat_completion(
-        self,
-        messages: list,
-        model: str,
-        temperature: float,
-        stream: bool,
-        api_key: str,
-        tools: Optional[list] = None,
-    ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
-        """Handle OpenAI API chat completion"""
-        client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
-        if tools:
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                stream=stream,
-                tools=tools,
-            )
-        else:
-            response = client.chat.completions.create(
-                model=model, messages=messages, temperature=temperature, stream=stream
-            )
+    # async def _openai_chat_completion(
+    #     self,
+    #     messages: list,
+    #     model: str,
+    #     temperature: float,
+    #     stream: bool,
+    #     api_key: str,
+    #     tools: Optional[list] = None,
+    # ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+    #     """Handle OpenAI API chat completion"""
+    #     client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
+    #     if tools:
+    #         response = client.chat.completions.create(
+    #             model=model,
+    #             messages=messages,
+    #             temperature=temperature,
+    #             stream=stream,
+    #             tools=tools,
+    #         )
+    #     else:
+    #         response = client.chat.completions.create(
+    #             model=model, messages=messages, temperature=temperature, stream=stream
+    #         )
 
-        if stream:
+    #     if stream:
 
-            async def generate():
-                for chunk in response:
-                    yield f"data: {chunk.model_dump_json()}\n\n"
+    #         async def generate():
+    #             for chunk in response:
+    #                 yield f"data: {chunk.model_dump_json()}\n\n"
 
-            return generate()
+    #         return generate()
 
-        return response
+    #     return response
 
     def format_code_block(self, code_data: dict) -> str:
         """格式化代码块输出"""
