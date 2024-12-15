@@ -42,6 +42,7 @@ async def chat_completion(
     token: str = Depends(security_service.verify_authorization),
 ):
     logger.info(f"Handling chat completion request for model: {request.model}")
+    logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
     retries = 0
