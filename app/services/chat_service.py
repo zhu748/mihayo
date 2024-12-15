@@ -61,7 +61,7 @@ class ChatService:
         return converted_messages
 
     def convert_gemini_response_to_openai(
-        self, response: Dict[str, Any], model: str, stream: bool = False
+        self, response: Dict[str, Any], model: str, stream: bool = False, finish_reason: str = None
     ) -> Optional[Dict[str, Any]]:
         """Convert Gemini response to OpenAI format"""
         if stream:
@@ -97,8 +97,8 @@ class ChatService:
                     "choices": [
                         {
                             "index": 0,
-                            "delta": {"content": text},
-                            "finish_reason": None,
+                            "delta": {"content": text} if text else {},
+                            "finish_reason": finish_reason,
                         }
                     ],
                 }
@@ -121,7 +121,7 @@ class ChatService:
                                 "text"
                             ],
                         },
-                        "finish_reason": "stop",
+                        "finish_reason": finish_reason,
                     }
                 ],
                 "usage": {
@@ -221,13 +221,14 @@ class ChatService:
                                             chunk = json.loads(line[6:])
                                             openai_chunk = (
                                                 self.convert_gemini_response_to_openai(
-                                                    chunk, model, stream=True
+                                                    chunk, model, stream=True, finish_reason=None
                                                 )
                                             )
                                             if openai_chunk:
                                                 yield f"data: {json.dumps(openai_chunk)}\n\n"
                                         except json.JSONDecodeError:
                                             continue
+                                yield f"data: {json.dumps({'finish_reason': 'stop'})}\n\n"
                                 yield "data: [DONE]\n\n"
                                 return  # 成功完成,退出重试循环
 
@@ -252,7 +253,7 @@ class ChatService:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                 response = await client.post(url, json=payload)
                 gemini_response = response.json()
-                return self.convert_gemini_response_to_openai(gemini_response, model)
+                return self.convert_gemini_response_to_openai(gemini_response, model, finish_reason="stop")
 
     async def _openai_chat_completion(
         self,
