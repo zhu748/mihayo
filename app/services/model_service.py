@@ -31,7 +31,7 @@ class ModelService:
     def convert_to_openai_models_format(
         self, gemini_models: Dict[str, Any]
     ) -> Dict[str, Any]:
-        openai_format = {"object": "list", "data": []}
+        openai_format = {"object": "list", "data": [],"success": True}
 
         for model in gemini_models.get("models", []):
             model_id = model["name"].split("/")[-1]
@@ -43,7 +43,7 @@ class ModelService:
                 "permission": [],
                 "root": model["name"],
                 "parent": None,
-                "success": True,
+                
             }
             openai_format["data"].append(openai_model)
 
