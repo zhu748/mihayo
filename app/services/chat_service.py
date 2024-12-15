@@ -145,7 +145,7 @@ class ChatService:
 
         if tools is None:
             tools = []
-        if settings.TOOLS_CODE_EXECUTION_ENABLED:
+        if settings.TOOLS_CODE_EXECUTION_ENABLED and not model.endswith("-search"):
             tools.append({"code_execution": {}})
         if model.endswith("-search"):
             tools.append({"googleSearch": {}})
@@ -295,8 +295,8 @@ class ChatService:
 
         return f"""\n```{language}\n{code}\n```\n"""
 
-    def format_execution_result(result_data: dict) -> str:
+    def format_execution_result(self, result_data: dict) -> str:
         """格式化执行结果输出"""
         outcome = result_data.get("outcome", "")
         output = result_data.get("output", "").strip()
-        return f"""\n【执行结果】\n{output}\n"""
+        return f"""\n【执行结果】\noutcome: {outcome}\noutput: {output}\n"""
