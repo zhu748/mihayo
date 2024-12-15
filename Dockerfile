@@ -7,11 +7,11 @@ COPY ./app /app/app
 COPY ./requirements.txt /app
 
 RUN pip install --no-cache-dir -r requirements.txt
-ENV API_KEYS=["your_api_key_1"]
-ENV ALLOWED_TOKENS=["your_token_1"]
+ENV API_KEYS='["your_api_key_1"]'
+ENV ALLOWED_TOKENS='["your_token_1"]'
 ENV BASE_URL=https://generativelanguage.googleapis.com/v1beta
 ENV TOOLS_CODE_EXECUTION_ENABLED=true
-ENV MODEL_SEARCH=["gemini-2.0-flash-exp"]
+ENV MODEL_SEARCH='["gemini-2.0-flash-exp"]'
 
 # Expose port
 EXPOSE 8000
