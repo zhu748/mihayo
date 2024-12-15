@@ -24,10 +24,7 @@ embedding_service = EmbeddingService(settings.BASE_URL)
 
 @router.get("/v1/models")
 @router.get("/hf/v1/models")
-async def list_models(
-    authorization: str = Header(None),
-    token: str = Depends(security_service.verify_authorization),
-):
+async def list_models():
     logger.info("Handling models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
