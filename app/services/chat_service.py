@@ -80,8 +80,12 @@ class ChatService:
                     text = parts[0].get("text")
                 elif "executableCode" in parts[0]:
                     text = self.format_code_block(parts[0]["executableCode"])
+                elif "codeExecution" in parts[0]:
+                    text = self.format_code_block(parts[0]["codeExecution"])
                 elif "executableCodeResult" in parts[0]:
                     text = self.format_execution_result(parts[0]["executableCodeResult"])
+                elif "codeExecutionResult" in parts[0]:
+                    text = self.format_execution_result(parts[0]["codeExecutionResult"])
                 else:
                     text = ""
 
@@ -290,7 +294,6 @@ class ChatService:
         code = code_data.get("code", "").strip()
 
         return f"""\n```{language}\n{code}\n```\n"""
-
 
     def format_execution_result(result_data: dict) -> str:
         """格式化执行结果输出"""
