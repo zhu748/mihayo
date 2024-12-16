@@ -172,7 +172,8 @@ class ChatService:
 
         if not stream:
             # 非流式模式下，移除代码执行工具
-            tools.remove({"code_execution": {}})
+            if {"code_execution": {}} in tools:
+                tools.remove({"code_execution": {}})
         payload = {
             "contents": gemini_messages,
             "generationConfig": {"temperature": temperature},
