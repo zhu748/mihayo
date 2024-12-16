@@ -298,4 +298,4 @@ class ChatService:
         """格式化执行结果输出"""
         outcome = result_data.get("outcome", "")
         output = result_data.get("output", "").strip()
-        return f"""\n【执行结果】\n> outcome: {outcome}\n> output:\n```plaintext\n{output}\n```\n"""
+        return f"""\n【执行结果】\n> outcome: {outcome}\n\n【输出结果】\n```plaintext\n{output}\n```\n"""
