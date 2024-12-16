@@ -28,6 +28,7 @@ async def list_models(
     authorization: str = Header(None),
     token: str = Depends(security_service.verify_authorization),
 ):
+    logger.info("-" * 50 + "list_models" + "-" * 50)
     logger.info("Handling models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
@@ -41,7 +42,7 @@ async def chat_completion(
     authorization: str = Header(None),
     token: str = Depends(security_service.verify_authorization),
 ):
-    logger.info("-" * 50)
+    logger.info("-" * 50 + "chat_completion" + "-" * 50)
     logger.info(f"Handling chat completion request for model: {request.model}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
     api_key = await key_manager.get_next_working_key()
@@ -85,6 +86,7 @@ async def embedding(
     authorization: str = Header(None),
     token: str = Depends(security_service.verify_authorization),
 ):
+    logger.info("-" * 50 + "embedding" + "-" * 50)
     logger.info(f"Handling embedding request for model: {request.model}")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
@@ -106,6 +108,7 @@ async def get_keys_list(
     token: str = Depends(security_service.verify_authorization),
 ):
     """获取有效和无效的API key列表"""
+    logger.info("-" * 50 + "get_keys_list" + "-" * 50)
     logger.info("Handling keys list request")
     try:
         keys_status = await key_manager.get_keys_by_status()
