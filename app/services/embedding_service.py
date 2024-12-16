@@ -1,8 +1,8 @@
-import logging
 import openai
 from typing import Union, List, Dict, Any
+from app.core.logger import get_embeddings_logger
 
-logger = logging.getLogger(__name__)
+logger = get_embeddings_logger()
 
 
 class EmbeddingService:

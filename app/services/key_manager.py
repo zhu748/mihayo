@@ -1,9 +1,9 @@
 import asyncio
 from itertools import cycle
-import logging
 from typing import Dict
+from app.core.logger import get_key_manager_logger
 
-logger = logging.getLogger(__name__)
+logger = get_key_manager_logger()
 
 
 class KeyManager:
@@ -42,7 +42,7 @@ class KeyManager:
 
             current_key = await self.get_next_key()
             if current_key == initial_key:
-                await self.reset_failure_counts()
+                # await self.reset_failure_counts() 取消重置
                 return current_key
 
     async def handle_api_failure(self, api_key: str) -> str:

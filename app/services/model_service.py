@@ -1,9 +1,9 @@
 import requests
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-import logging
+from app.core.logger import get_model_logger
 
-logger = logging.getLogger(__name__)
+logger = get_model_logger()
 
 
 class ModelService:

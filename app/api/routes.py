@@ -1,6 +1,5 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Depends, Header
-import logging
 from fastapi.responses import StreamingResponse
 
 from app.core.security import SecurityService
@@ -10,9 +9,10 @@ from app.services.chat_service import ChatService
 from app.services.embedding_service import EmbeddingService
 from app.schemas.request_model import ChatRequest, EmbeddingRequest
 from app.core.config import settings
+from app.core.logger import get_api_logger
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = get_api_logger()
 
 # 初始化服务
 security_service = SecurityService(settings.ALLOWED_TOKENS)
@@ -59,7 +59,6 @@ async def chat_completion(
                 tools=request.tools,
                 tool_choice=request.tool_choice,
             )
-            
 
             # 处理流式响应
             if request.stream:

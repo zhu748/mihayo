@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
+from app.core.logger import get_main_logger
 
 from app.api.routes import router
 import uvicorn
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+logger = get_main_logger()
 
 app = FastAPI()
 

@@ -2,12 +2,12 @@ import httpx
 import json
 import time
 import uuid
-import logging
 from typing import Dict, Any, Optional, AsyncGenerator, Union
 import openai
 from app.core.config import settings
+from app.core.logger import get_chat_logger
 
-logger = logging.getLogger(__name__)
+logger = get_chat_logger()
 
 
 class ChatService:
@@ -170,6 +170,9 @@ class ChatService:
             gemini_model = model
         gemini_messages = self.convert_messages_to_gemini_format(messages)
 
+        if not stream:
+            # 非流式模式下，移除代码执行工具
+            tools.remove({"code_execution": {}})
         payload = {
             "contents": gemini_messages,
             "generationConfig": {"temperature": temperature},
@@ -241,7 +244,9 @@ class ChatService:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                     response = await client.post(url, json=payload)
                     if response.status_code != 200:
-                        raise Exception(f"API error: {response.status_code}")
+                        error_text = response.text
+                        error_code = response.status_code
+                        raise Exception(f"API调用错误 - 状态码: {error_code}, 响应内容: {error_text}")
                     gemini_response = response.json()
                     return self.convert_gemini_response_to_openai(gemini_response, model, finish_reason="stop")
             except Exception as e:
@@ -287,10 +292,10 @@ class ChatService:
         language = code_data.get("language", "").lower()
         code = code_data.get("code", "").strip()
 
-        return f"""\n```{language}\n{code}\n```\n"""
+        return f"""\n【代码执行】\n```{language}\n{code}\n```\n"""
 
     def format_execution_result(self, result_data: dict) -> str:
         """格式化执行结果输出"""
         outcome = result_data.get("outcome", "")
         output = result_data.get("output", "").strip()
-        return f"""\n【执行结果】\noutcome: {outcome}\noutput: {output}\n"""
+        return f"""\n【执行结果】\noutcome: {outcome}\noutput:\n```{output}```\n"""

@@ -1,8 +1,8 @@
 from fastapi import HTTPException, Header
-import logging
 from typing import Optional
+from app.core.logger import get_security_logger
 
-logger = logging.getLogger(__name__)
+logger = get_security_logger()
 
 
 class SecurityService:
