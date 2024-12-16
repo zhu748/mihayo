@@ -230,6 +230,7 @@ class ChatService:
                         logger.warning(f"Stream error: {str(e)}, attempting retry {retries + 1}")
                         if retries < MAX_RETRIES - 1:
                             current_api_key = await self.key_manager.handle_api_failure(current_api_key)
+                            logger.info(f"Switched to new API key: {current_api_key}")
                             retries += 1
                             continue
                         else:
