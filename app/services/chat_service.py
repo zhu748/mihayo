@@ -250,7 +250,7 @@ class ChatService:
                     gemini_response = response.json()
                     return self.convert_gemini_response_to_openai(gemini_response, model, finish_reason="stop")
             except Exception as e:
-                logger.error(f"Error in non-stream completion: {str(e)}")
+                logger.error(f"Error in non-stream completion")
                 raise
 
     # async def _openai_chat_completion(
