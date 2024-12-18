@@ -195,7 +195,7 @@ class ChatService:
 
                 while retries < MAX_RETRIES:
                     try:
-                        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+                        timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
                         async with httpx.AsyncClient(timeout=timeout) as client:
                             stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:streamGenerateContent?alt=sse&key={current_api_key}"
                             async with client.stream("POST", stream_url, json=payload) as response:
@@ -254,7 +254,7 @@ class ChatService:
             return generate()
         else:
             try:
-                timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时30秒，读取超时60秒
+                timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                     response = await client.post(url, json=payload)
@@ -290,7 +290,7 @@ class ChatService:
         """调用Gemini API生成内容"""
         url = f"{self.base_url}/models/{model_name}:generateContent?key={api_key}"
 
-        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+        timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时30秒，读取超时60秒
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 response = await client.post(url, json=request.model_dump())
@@ -314,7 +314,7 @@ class ChatService:
         """调用Gemini API流式生成内容"""
         url = f"{self.base_url}/models/{model_name}:streamGenerateContent?alt=sse&key={api_key}"
         
-        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+        timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 async with client.stream('POST', url, json=request.model_dump()) as response:
