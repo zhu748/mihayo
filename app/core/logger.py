@@ -50,7 +50,7 @@ class Logger:
     @staticmethod
     def setup_logger(
         name: str,
-        level: str = "info",
+        level: str = "debug",
     ) -> logging.Logger:
         """
         设置并获取logger
@@ -83,8 +83,11 @@ class Logger:
         return Logger._loggers.get(name)
 
 # 预定义的loggers
-def get_api_logger():
-    return Logger.setup_logger("api")
+def get_openai_logger():
+    return Logger.setup_logger("openai")
+
+def get_gemini_logger():
+    return Logger.setup_logger("gemini")
 
 def get_chat_logger():
     return Logger.setup_logger("chat")
@@ -103,3 +106,6 @@ def get_main_logger():
 
 def get_embeddings_logger():
     return Logger.setup_logger("embeddings")
+
+def get_request_logger():
+    return Logger.setup_logger("request")

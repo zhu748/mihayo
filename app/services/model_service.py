@@ -9,21 +9,28 @@ logger = get_model_logger()
 class ModelService:
     def __init__(self, model_search: list):
         self.model_search = model_search
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
 
     def get_gemini_models(self, api_key: str) -> Optional[Dict[str, Any]]:
-        base_url = "https://generativelanguage.googleapis.com/v1beta"
-        url = f"{base_url}/models?key={api_key}"
+        url = f"{self.base_url}/models?key={api_key}"
 
         try:
             response = requests.get(url)
             if response.status_code == 200:
                 gemini_models = response.json()
-                return self.convert_to_openai_models_format(gemini_models)
+                return gemini_models
             else:
                 logger.error(f"Error: {response.status_code}")
                 logger.error(response.text)
                 return None
+        except requests.RequestException as e:
+            logger.error(f"Request failed: {e}")
+            return None
 
+    def get_gemini_openai_models(self, api_key: str) -> Optional[Dict[str, Any]]:
+        try:
+            gemini_models = self.get_gemini_models(api_key)
+            return self.convert_to_openai_models_format(gemini_models)
         except requests.RequestException as e:
             logger.error(f"Request failed: {e}")
             return None
@@ -43,7 +50,6 @@ class ModelService:
                 "permission": [],
                 "root": model["name"],
                 "parent": None,
-                
             }
             openai_format["data"].append(openai_model)
 

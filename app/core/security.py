@@ -9,6 +9,12 @@ class SecurityService:
     def __init__(self, allowed_tokens: list):
         self.allowed_tokens = allowed_tokens
 
+    async def verify_key(self, key: str):
+        if key not in self.allowed_tokens:
+            logger.error("Invalid key")
+            raise HTTPException(status_code=401, detail="Invalid key")
+        return key
+
     async def verify_authorization(
         self, authorization: Optional[str] = Header(None)
     ) -> str:

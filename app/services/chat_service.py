@@ -3,9 +3,9 @@ import json
 import time
 import uuid
 from typing import Dict, Any, Optional, AsyncGenerator, Union
-import openai
 from app.core.config import settings
 from app.core.logger import get_chat_logger
+from app.schemas.gemini_models import GeminiRequest
 
 logger = get_chat_logger()
 
@@ -195,7 +195,8 @@ class ChatService:
 
                 while retries < MAX_RETRIES:
                     try:
-                        async with httpx.AsyncClient() as client:
+                        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+                        async with httpx.AsyncClient(timeout=timeout) as client:
                             stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:streamGenerateContent?alt=sse&key={current_api_key}"
                             async with client.stream("POST", stream_url, json=payload) as response:
                                 if response.status_code != 200:
@@ -207,9 +208,9 @@ class ChatService:
                                         continue
                                     else:
                                         logger.error(
-                                            f"Max retries reached. Final error: {response.status_code}"
+                                            f"Max retries reached. Final error: {response.status_code}, {error_msg}"
                                         )
-                                        yield f"data: {json.dumps({'error': f'API error: {response.status_code}'})}\n\n"
+                                        yield f"data: {json.dumps({'error': f'API error: {response.status_code}, {error_msg}'})}\n\n"
                                         return
 
                                 async for line in response.aiter_lines():
@@ -227,22 +228,34 @@ class ChatService:
                                 yield "data: [DONE]\n\n"
                                 return
 
-                    except Exception as e:
-                        logger.warning(f"Stream error: {str(e)}, attempting retry {retries + 1}")
+                    except httpx.ReadTimeout:
+                        logger.warning(f"Read timeout occurred, attempting retry {retries + 1}")
                         if retries < MAX_RETRIES - 1:
                             current_api_key = await self.key_manager.handle_api_failure(current_api_key)
                             logger.info(f"Switched to new API key: {current_api_key}")
                             retries += 1
                             continue
                         else:
-                            logger.error(f"Max retries reached. Final error: {str(e)}")
+                            logger.error(f"Max retries reached. Final error: Read timeout")
+                            yield f"data: {json.dumps({'error': 'Read timeout'})}\n\n"
+                            return
+                    except Exception as e:
+                        logger.exception(f"Stream error: {str(e)}, attempting retry {retries + 1}")
+                        if retries < MAX_RETRIES - 1:
+                            current_api_key = await self.key_manager.handle_api_failure(current_api_key)
+                            logger.info(f"Switched to new API key: {current_api_key}")
+                            retries += 1
+                            continue
+                        else:
+                            logger.error(f"Max retries reached. Final error: {e}")
                             yield f"data: {json.dumps({'error': str(e)})}\n\n"
                             return
 
             return generate()
         else:
             try:
-                async with httpx.AsyncClient() as client:
+                timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                     response = await client.post(url, json=payload)
                     if response.status_code != 200:
@@ -254,40 +267,6 @@ class ChatService:
             except Exception as e:
                 logger.error(f"Error in non-stream completion")
                 raise
-
-    # async def _openai_chat_completion(
-    #     self,
-    #     messages: list,
-    #     model: str,
-    #     temperature: float,
-    #     stream: bool,
-    #     api_key: str,
-    #     tools: Optional[list] = None,
-    # ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
-    #     """Handle OpenAI API chat completion"""
-    #     client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
-    #     if tools:
-    #         response = client.chat.completions.create(
-    #             model=model,
-    #             messages=messages,
-    #             temperature=temperature,
-    #             stream=stream,
-    #             tools=tools,
-    #         )
-    #     else:
-    #         response = client.chat.completions.create(
-    #             model=model, messages=messages, temperature=temperature, stream=stream
-    #         )
-
-    #     if stream:
-
-    #         async def generate():
-    #             for chunk in response:
-    #                 yield f"data: {chunk.model_dump_json()}\n\n"
-
-    #         return generate()
-
-    #     return response
 
     def format_code_block(self, code_data: dict) -> str:
         """格式化代码块输出"""
@@ -301,3 +280,53 @@ class ChatService:
         outcome = result_data.get("outcome", "")
         output = result_data.get("output", "").strip()
         return f"""\n【执行结果】\n> outcome: {outcome}\n\n【输出结果】\n```plaintext\n{output}\n```\n"""
+
+    async def generate_content(
+        self,
+        model_name: str,
+        request: GeminiRequest,
+        api_key: str
+    ) -> dict:
+        """调用Gemini API生成内容"""
+        url = f"{self.base_url}/models/{model_name}:generateContent?key={api_key}"
+
+        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                response = await client.post(url, json=request.model_dump())
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    error_text = response.text
+                    logger.error(f"Error: {response.status_code}")
+                    logger.error(error_text)
+                    raise Exception(f"API request failed with status {response.status_code}: {error_text}")
+            except Exception as e:
+                logger.error(f"Request failed: {str(e)}")
+                raise
+
+    async def stream_generate_content(
+        self,
+        model_name: str,
+        request: GeminiRequest,
+        api_key: str
+    ) -> AsyncGenerator:
+        """调用Gemini API流式生成内容"""
+        url = f"{self.base_url}/models/{model_name}:streamGenerateContent?alt=sse&key={api_key}"
+        
+        timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                async with client.stream('POST', url, json=request.model_dump()) as response:
+                    if response.status_code != 200:
+                        error_text = response.text
+                        logger.error(f"Error: {response.status_code}")
+                        logger.error(error_text)
+                        raise Exception(f"API request failed with status {response.status_code}: {error_text}")
+                    
+                    async for line in response.aiter_lines():
+                        print(line)
+                        yield line + "\n\n"
+            except Exception as e:
+                logger.error(f"Streaming request failed: {str(e)}")
+                raise

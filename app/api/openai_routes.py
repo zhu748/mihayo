@@ -7,12 +7,12 @@ from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
 from app.services.chat_service import ChatService
 from app.services.embedding_service import EmbeddingService
-from app.schemas.request_model import ChatRequest, EmbeddingRequest
+from app.schemas.openai_models import ChatRequest, EmbeddingRequest
 from app.core.config import settings
-from app.core.logger import get_api_logger
+from app.core.logger import get_openai_logger
 
 router = APIRouter()
-logger = get_api_logger()
+logger = get_openai_logger()
 
 # 初始化服务
 security_service = SecurityService(settings.ALLOWED_TOKENS)
@@ -32,7 +32,7 @@ async def list_models(
     logger.info("Handling models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
-    return model_service.get_gemini_models(api_key)
+    return model_service.get_gemini_openai_models(api_key)
 
 
 @router.post("/v1/chat/completions")
