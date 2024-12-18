@@ -254,7 +254,7 @@ class ChatService:
             return generate()
         else:
             try:
-                timeout = httpx.Timeout(30.0, read=60.0)  # 连接超时30秒，读取超时60秒
+                timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时30秒，读取超时60秒
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                     response = await client.post(url, json=payload)
