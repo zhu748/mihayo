@@ -312,21 +312,45 @@ class ChatService:
         api_key: str
     ) -> AsyncGenerator:
         """调用Gemini API流式生成内容"""
-        url = f"{self.base_url}/models/{model_name}:streamGenerateContent?alt=sse&key={api_key}"
-        
-        timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        retries = 0
+        MAX_RETRIES = 3
+        current_api_key = api_key
+
+        while retries < MAX_RETRIES:
             try:
-                async with client.stream('POST', url, json=request.model_dump()) as response:
-                    if response.status_code != 200:
-                        error_text = response.text
-                        logger.error(f"Error: {response.status_code}")
-                        logger.error(error_text)
-                        raise Exception(f"API request failed with status {response.status_code}: {error_text}")
-                    
-                    async for line in response.aiter_lines():
-                        print(line)
-                        yield line + "\n\n"
+                url = f"{self.base_url}/models/{model_name}:streamGenerateContent?alt=sse&key={current_api_key}"
+                timeout = httpx.Timeout(60.0, read=60.0)
+                
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    async with client.stream('POST', url, json=request.model_dump()) as response:
+                        if response.status_code != 200:
+                            error_text = await response.text()
+                            logger.error(f"Error: {response.status_code}: {error_text}")
+                            if retries < MAX_RETRIES - 1:
+                                current_api_key = await self.key_manager.handle_api_failure(current_api_key)
+                                logger.info(f"Switched to new API key: {current_api_key}")
+                                retries += 1
+                                continue
+                            raise Exception(f"API request failed with status {response.status_code}: {error_text}")
+                        
+                        async for line in response.aiter_lines():
+                            yield line + "\n\n"
+                        return
+
+            except httpx.ReadTimeout:
+                logger.warning(f"Read timeout occurred, attempting retry {retries + 1}")
+                if retries < MAX_RETRIES - 1:
+                    current_api_key = await self.key_manager.handle_api_failure(current_api_key)
+                    logger.info(f"Switched to new API key: {current_api_key}")
+                    retries += 1
+                    continue
+                raise
+
             except Exception as e:
                 logger.error(f"Streaming request failed: {str(e)}")
+                if retries < MAX_RETRIES - 1:
+                    current_api_key = await self.key_manager.handle_api_failure(current_api_key)
+                    logger.info(f"Switched to new API key: {current_api_key}")
+                    retries += 1
+                    continue
                 raise

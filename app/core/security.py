@@ -34,3 +34,15 @@ class SecurityService:
             raise HTTPException(status_code=401, detail="Invalid token")
 
         return token
+
+    async def verify_goog_api_key(self, x_goog_api_key: Optional[str] = Header(None)) -> str:
+        """验证Google API Key"""
+        if not x_goog_api_key:
+            logger.error("Missing x-goog-api-key header")
+            raise HTTPException(status_code=401, detail="Missing x-goog-api-key header")
+
+        if x_goog_api_key not in self.allowed_tokens:
+            logger.error("Invalid x-goog-api-key")
+            raise HTTPException(status_code=401, detail="Invalid x-goog-api-key")
+        
+        return x_goog_api_key

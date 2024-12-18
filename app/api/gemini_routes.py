@@ -17,6 +17,7 @@ logger = get_gemini_logger()
 security_service = SecurityService(settings.ALLOWED_TOKENS)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
+chat_service = ChatService(base_url=settings.BASE_URL, key_manager=key_manager)
 
 @router.get("/models")
 async def list_models(
@@ -32,13 +33,13 @@ async def list_models(
 
 @router.post("/models/{model_name}:generateContent")
 async def generate_content(
+    model_name: str,
     request: GeminiRequest,
-    # key: str = None,
-    # token: str = Depends(security_service.verify_key),
+    x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
 ):
     """非流式生成内容"""
     logger.info("-" * 50 + "gemini_generate_content" + "-" * 50)
-    logger.info(f"Handling Gemini content generation request for model: {request.model}")
+    logger.info(f"Handling Gemini content generation request for model: {model_name}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
     
     api_key = await key_manager.get_next_working_key()
@@ -48,13 +49,9 @@ async def generate_content(
 
     while retries < MAX_RETRIES:
         try:
-            response = await model_service.generate_content(
-                contents=request.contents,
-                model=request.model,
-                temperature=request.temperature,
-                candidate_count=request.candidate_count,
-                top_p=request.top_p,
-                top_k=request.top_k,
+            response = await chat_service.generate_content(
+                model_name=model_name,
+                request=request,
                 api_key=api_key
             )
             return response
@@ -68,14 +65,12 @@ async def generate_content(
             retries += 1
             if retries >= MAX_RETRIES:
                 logger.error(f"Max retries ({MAX_RETRIES}) reached. Raising error")
-                raise
 
 @router.post("/models/{model_name}:streamGenerateContent") 
 async def stream_generate_content(
     model_name: str,
     request: GeminiRequest,
-    # x_goog_api_key: str = Header("x-goog-api-key"),
-    # token: str = Depends(security_service.verify_key),
+    x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
 ):
     """流式生成内容"""
     logger.info("-" * 50 + "gemini_stream_generate_content" + "-" * 50)
@@ -95,4 +90,3 @@ async def stream_generate_content(
         
     except Exception as e:
         logger.error(f"Streaming request failed: {str(e)}")
-        raise 
