@@ -142,7 +142,7 @@ class ChatService:
 
         if tools is None:
             tools = []
-        if settings.TOOLS_CODE_EXECUTION_ENABLED and not model.endswith("-search"):
+        if settings.TOOLS_CODE_EXECUTION_ENABLED and not (model.endswith("-search") or "-thinking" in model):
             tools.append({"code_execution": {}})
         if model.endswith("-search"):
             tools.append({"googleSearch": {}})
@@ -198,9 +198,10 @@ class ChatService:
                         timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
                         async with httpx.AsyncClient(timeout=timeout) as client:
                             stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:streamGenerateContent?alt=sse&key={current_api_key}"
-                            async with client.stream("POST", stream_url, json=payload) as response:
+                            async with client.stream('POST', stream_url, json=payload) as response:
                                 if response.status_code != 200:
-                                    error_msg = await response.text()
+                                    error_content = await response.read()
+                                    error_msg = error_content.decode('utf-8')
                                     logger.error(f"API error: {response.status_code}, {error_msg}")
                                     if retries < MAX_RETRIES - 1:
                                         current_api_key = await self.key_manager.handle_api_failure(current_api_key)
