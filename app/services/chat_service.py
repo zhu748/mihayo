@@ -11,61 +11,73 @@ from app.schemas.openai_models import ChatRequest
 logger = get_chat_logger()
 
 
+def convert_messages_to_gemini_format(messages: list) -> list:
+    """Convert OpenAI message format to Gemini format"""
+    converted_messages = []
+    for msg in messages:
+        role = "user" if msg["role"] == "user" else "model"
+        parts = []
+
+        # 处理文本内容
+        if isinstance(msg["content"], str):
+            parts.append({"text": msg["content"]})
+        # 处理包含图片的消息
+        elif isinstance(msg["content"], list):
+            for content in msg["content"]:
+                if isinstance(content, str):
+                    parts.append({"text": content})
+                elif isinstance(content, dict) and content["type"] == "text":
+                    parts.append({"text": content["text"]})
+                elif isinstance(content, dict) and content["type"] == "image_url":
+                    # 处理图片URL
+                    image_url = content["image_url"]["url"]
+                    if image_url.startswith("data:image"):
+                        # 处理base64图片
+                        parts.append(
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_url.split(",")[1],
+                                }
+                            }
+                        )
+                    else:
+                        # 处理普通URL图片
+                        parts.append(
+                            {
+                                "image_url": {
+                                    "url": image_url,
+                                }
+                            }
+                        )
+
+        converted_messages.append({"role": role, "parts": parts})
+
+    return converted_messages
+
+
+def format_execution_result(result_data: dict) -> str:
+    """格式化执行结果输出"""
+    outcome = result_data.get("outcome", "")
+    output = result_data.get("output", "").strip()
+    return f"""\n【执行结果】\n> outcome: {outcome}\n\n【输出结果】\n```plaintext\n{output}\n```\n"""
+
+
+def create_search_link(web):
+    return f'\n- [{web["title"]}]({web["uri"]})'
+
+
 class ChatService:
     def __init__(self, base_url: str, key_manager=None):
         self.base_url = base_url
         self.key_manager = key_manager
 
-    def convert_messages_to_gemini_format(self, messages: list) -> list:
-        """Convert OpenAI message format to Gemini format"""
-        converted_messages = []
-        for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
-            parts = []
-
-            # 处理文本内容
-            if isinstance(msg["content"], str):
-                parts.append({"text": msg["content"]})
-            # 处理包含图片的消息
-            elif isinstance(msg["content"], list):
-                for content in msg["content"]:
-                    if isinstance(content, str):
-                        parts.append({"text": content})
-                    elif isinstance(content, dict) and content["type"] == "text":
-                        parts.append({"text": content["text"]})
-                    elif isinstance(content, dict) and content["type"] == "image_url":
-                        # 处理图片URL
-                        image_url = content["image_url"]["url"]
-                        if image_url.startswith("data:image"):
-                            # 处理base64图片
-                            parts.append(
-                                {
-                                    "inline_data": {
-                                        "mime_type": "image/jpeg",
-                                        "data": image_url.split(",")[1],
-                                    }
-                                }
-                            )
-                        else:
-                            # 处理普通URL图片
-                            parts.append(
-                                {
-                                    "image_url": {
-                                        "url": image_url,
-                                    }
-                                }
-                            )
-
-            converted_messages.append({"role": role, "parts": parts})
-
-        return converted_messages
-
     def convert_gemini_response_to_openai(
-        self,
-        response: Dict[str, Any],
-        model: str,
-        stream: bool = False,
-        finish_reason: str = None,
+            self,
+            response: Dict[str, Any],
+            model: str,
+            stream: bool = False,
+            finish_reason: str = None,
     ) -> Optional[Dict[str, Any]]:
         """Convert Gemini response to OpenAI format"""
         if stream:
@@ -82,28 +94,17 @@ class ChatService:
                     elif "codeExecution" in parts[0]:
                         text = self.format_code_block(parts[0]["codeExecution"])
                     elif "executableCodeResult" in parts[0]:
-                        text = self.format_execution_result(
+                        text = format_execution_result(
                             parts[0]["executableCodeResult"]
                         )
                     elif "codeExecutionResult" in parts[0]:
-                        text = self.format_execution_result(
+                        text = format_execution_result(
                             parts[0]["codeExecutionResult"]
                         )
                     else:
                         text = ""
 
-                    if (
-                        settings.SHOW_SEARCH_LINK
-                        and model.endswith("-search")
-                        and "groundingMetadata" in candidate
-                        and "groundingChunks" in candidate["groundingMetadata"]
-                    ):
-                        groundingChunks = candidate["groundingMetadata"]["groundingChunks"]
-                        text += "\n\n---\n\n"
-                        text += f"**【引用来源】**\n\n"
-                        for _, groundingChunk in enumerate(groundingChunks, 1):
-                            if "web" in groundingChunk:
-                                text += self.create_search_link(groundingChunk["web"])
+                    text = self.add_search_link_text(model, candidate, text)
                 else:
                     text = ""
 
@@ -131,37 +132,26 @@ class ChatService:
                 "created": int(time.time()),
                 "model": model,
                 "choices": [
-                        {
-                            "index": 0,
-                            "message": {
-                                "role": "assistant",
-                                "content": response["candidates"][0]["content"]["parts"][0]["text"],
-                            },
-                            "finish_reason": finish_reason,
-                        }
-                    ],
-                    "usage": {
-                        "prompt_tokens": 0,
-                        "completion_tokens": 0,
-                        "total_tokens": 0,
-                    },
-                }
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": response["candidates"][0]["content"]["parts"][0]["text"],
+                        },
+                        "finish_reason": finish_reason,
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                },
+            }
             try:
                 if response.get("candidates"):
                     text = response["candidates"][0]["content"]["parts"][0]["text"]
                     candidate = response["candidates"][0]
-                    if (
-                        settings.SHOW_SEARCH_LINK
-                        and model.endswith("-search")
-                        and "groundingMetadata" in candidate
-                        and "groundingChunks" in candidate["groundingMetadata"]
-                    ):
-                        groundingChunks = candidate["groundingMetadata"]["groundingChunks"]
-                        text += "\n\n---\n\n"
-                        text += f"**【引用来源】**\n\n"
-                        for _, groundingChunk in enumerate(groundingChunks, 1):
-                            if "web" in groundingChunk:
-                                text += self.create_search_link(groundingChunk["web"])
+                    text = self.add_search_link_text(model, candidate, text)
                     res["choices"][0]["message"]["content"] = text
                     return res
                 else:
@@ -173,10 +163,27 @@ class ChatService:
                 res["choices"][0]["message"]["content"] = f"Error converting Gemini response: {str(e)}"
                 return res
 
+    def add_search_link_text(self, model, candidate, text):
+        if (
+                settings.SHOW_SEARCH_LINK
+                and model.endswith("-search")
+                and "groundingMetadata" in candidate
+                and "groundingChunks" in candidate["groundingMetadata"]
+        ):
+            grounding_chunks = candidate["groundingMetadata"]["groundingChunks"]
+            text += "\n\n---\n\n"
+            text += f"**【引用来源】**\n\n"
+            for _, grounding_chunk in enumerate(grounding_chunks, 1):
+                if "web" in grounding_chunk:
+                    text += create_search_link(grounding_chunk["web"])
+            return text
+        else:
+            return text
+        
     async def create_chat_completion(
-        self,
-        request: ChatRequest,
-        api_key: str,
+            self,
+            request: ChatRequest,
+            api_key: str,
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """Create chat completion using either Gemini or OpenAI API"""
         model = request.model
@@ -184,7 +191,7 @@ class ChatService:
         if tools is None:
             tools = []
         if settings.TOOLS_CODE_EXECUTION_ENABLED and not (
-            model.endswith("-search") or "-thinking" in model
+                model.endswith("-search") or "-thinking" in model
         ):
             tools.append({"code_execution": {}})
         if model.endswith("-search"):
@@ -192,10 +199,10 @@ class ChatService:
         return await self._gemini_chat_completion(request, api_key, tools)
 
     async def _gemini_chat_completion(
-        self,
-        request: ChatRequest,
-        api_key: str,
-        tools: Optional[list] = None,
+            self,
+            request: ChatRequest,
+            api_key: str,
+            tools: Optional[list] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """Handle Gemini API chat completion"""
         model = request.model
@@ -210,7 +217,7 @@ class ChatService:
             gemini_model = model[:-7]  # Remove -search suffix
         else:
             gemini_model = model
-        gemini_messages = self.convert_messages_to_gemini_format(messages)
+        gemini_messages = convert_messages_to_gemini_format(messages)
 
         if not stream:
             # 非流式模式下，移除代码执行工具
@@ -247,26 +254,26 @@ class ChatService:
         if stream:
             async def generate():
                 retries = 0
-                MAX_RETRIES = 3
+                max_retries = 3
                 current_api_key = api_key
 
-                while retries < MAX_RETRIES:
+                while retries < max_retries:
                     try:
                         timeout = httpx.Timeout(
                             60.0, read=60.0
                         )  # 连接超时60秒，读取超时60秒
-                        async with httpx.AsyncClient(timeout=timeout) as client:
+                        async with httpx.AsyncClient(timeout=timeout) as async_client:
                             stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:streamGenerateContent?alt=sse&key={current_api_key}"
-                            async with client.stream(
-                                "POST", stream_url, json=payload
-                            ) as response:
-                                if response.status_code != 200:
-                                    error_content = await response.read()
+                            async with async_client.stream(
+                                    "POST", stream_url, json=payload
+                            ) as async_response:
+                                if async_response.status_code != 200:
+                                    error_content = await async_response.read()
                                     error_msg = error_content.decode("utf-8")
                                     logger.error(
-                                        f"API error: {response.status_code}, {error_msg}"
+                                        f"API error: {async_response.status_code}, {error_msg}"
                                     )
-                                    if retries < MAX_RETRIES - 1:
+                                    if retries < max_retries - 1:
                                         current_api_key = (
                                             await self.key_manager.handle_api_failure(
                                                 current_api_key
@@ -276,12 +283,12 @@ class ChatService:
                                         continue
                                     else:
                                         logger.error(
-                                            f"Max retries reached. Final error: {response.status_code}, {error_msg}"
+                                            f"Max retries reached. Final error: {async_response.status_code}, {error_msg}"
                                         )
-                                        yield f"data: {json.dumps({'error': f'API error: {response.status_code}, {error_msg}'})}\n\n"
+                                        yield f"data: {json.dumps({'error': f'API error: {async_response.status_code}, {error_msg}'})}\n\n"
                                         return
 
-                                async for line in response.aiter_lines():
+                                async for line in async_response.aiter_lines():
                                     if line.startswith("data: "):
                                         try:
                                             chunk = json.loads(line[6:])
@@ -297,7 +304,7 @@ class ChatService:
                                                 yield f"data: {json.dumps(openai_chunk)}\n\n"
                                         except json.JSONDecodeError:
                                             continue
-                                yield f"data: {json.dumps(self.convert_gemini_response_to_openai({}, model,stream=True, finish_reason='stop'))}\n\n"
+                                yield f"data: {json.dumps(self.convert_gemini_response_to_openai({}, model, stream=True, finish_reason='stop'))}\n\n"
                                 yield "data: [DONE]\n\n"
                                 return
 
@@ -305,7 +312,7 @@ class ChatService:
                         logger.warning(
                             f"Read timeout occurred, attempting retry {retries + 1}"
                         )
-                        if retries < MAX_RETRIES - 1:
+                        if retries < max_retries - 1:
                             current_api_key = await self.key_manager.handle_api_failure(
                                 current_api_key
                             )
@@ -322,7 +329,7 @@ class ChatService:
                         logger.exception(
                             f"Stream error: {str(e)}, attempting retry {retries + 1}"
                         )
-                        if retries < MAX_RETRIES - 1:
+                        if retries < max_retries - 1:
                             current_api_key = await self.key_manager.handle_api_failure(
                                 current_api_key
                             )
@@ -362,14 +369,8 @@ class ChatService:
 
         return f"""\n【代码执行】\n```{language}\n{code}\n```\n"""
 
-    def format_execution_result(self, result_data: dict) -> str:
-        """格式化执行结果输出"""
-        outcome = result_data.get("outcome", "")
-        output = result_data.get("output", "").strip()
-        return f"""\n【执行结果】\n> outcome: {outcome}\n\n【输出结果】\n```plaintext\n{output}\n```\n"""
-
     async def generate_content(
-        self, model_name: str, request: GeminiRequest, api_key: str
+            self, model_name: str, request: GeminiRequest, api_key: str
     ) -> dict:
         """调用Gemini API生成内容"""
         url = f"{self.base_url}/models/{model_name}:generateContent?key={api_key}"
@@ -392,7 +393,7 @@ class ChatService:
                 raise
 
     async def stream_generate_content(
-        self, model_name: str, request: GeminiRequest, api_key: str
+            self, model_name: str, request: GeminiRequest, api_key: str
     ) -> AsyncGenerator:
         """调用Gemini API流式生成内容"""
         retries = 0
@@ -406,7 +407,7 @@ class ChatService:
 
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     async with client.stream(
-                        "POST", url, json=request.model_dump()
+                            "POST", url, json=request.model_dump()
                     ) as response:
                         if response.status_code != 200:
                             error_text = await response.text()
@@ -451,6 +452,3 @@ class ChatService:
                     retries += 1
                     continue
                 raise
-
-    def create_search_link(self, web):
-        return f'\n- [{web["title"]}]({web["uri"]})'

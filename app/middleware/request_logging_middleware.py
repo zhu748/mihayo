@@ -3,15 +3,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import json
 from app.core.logger import get_request_logger
 
-
 logger = get_request_logger()
+
 
 # 添加中间件类
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # 记录请求路径
         logger.info(f"Request path: {request.url.path}")
-        
+
         # 获取并记录请求体
         try:
             body = await request.body()

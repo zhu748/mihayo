@@ -5,30 +5,33 @@ import platform
 
 # ANSI转义序列颜色代码
 COLORS = {
-    'DEBUG': '\033[34m',     # 蓝色
-    'INFO': '\033[32m',      # 绿色
-    'WARNING': '\033[33m',   # 黄色
-    'ERROR': '\033[31m',     # 红色
-    'CRITICAL': '\033[1;31m' # 红色加粗
+    'DEBUG': '\033[34m',  # 蓝色
+    'INFO': '\033[32m',  # 绿色
+    'WARNING': '\033[33m',  # 黄色
+    'ERROR': '\033[31m',  # 红色
+    'CRITICAL': '\033[1;31m'  # 红色加粗
 }
 
 # Windows系统启用ANSI支持
 if platform.system() == 'Windows':
     import ctypes
+
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-    
+
 
 class ColoredFormatter(logging.Formatter):
     """
     自定义的日志格式化器,添加颜色支持
     """
+
     def format(self, record):
         # 获取对应级别的颜色代码
         color = COLORS.get(record.levelname, '')
         # 添加颜色代码和重置代码
         record.levelname = f"{color}{record.levelname}\033[0m"
         return super().format(record)
+
 
 # 日志格式
 FORMATTER = ColoredFormatter(
@@ -44,13 +47,17 @@ LOG_LEVELS = {
     "critical": logging.CRITICAL,
 }
 
+
 class Logger:
+    def __init__(self):
+        pass
+
     _loggers: Dict[str, logging.Logger] = {}
 
     @staticmethod
     def setup_logger(
-        name: str,
-        level: str = "debug",
+            name: str,
+            level: str = "debug",
     ) -> logging.Logger:
         """
         设置并获取logger
@@ -82,30 +89,39 @@ class Logger:
         """
         return Logger._loggers.get(name)
 
+
 # 预定义的loggers
 def get_openai_logger():
     return Logger.setup_logger("openai")
 
+
 def get_gemini_logger():
     return Logger.setup_logger("gemini")
+
 
 def get_chat_logger():
     return Logger.setup_logger("chat")
 
+
 def get_model_logger():
     return Logger.setup_logger("model")
+
 
 def get_security_logger():
     return Logger.setup_logger("security")
 
+
 def get_key_manager_logger():
-    return Logger.setup_logger("key_manager") 
+    return Logger.setup_logger("key_manager")
+
 
 def get_main_logger():
     return Logger.setup_logger("main")
 
+
 def get_embeddings_logger():
     return Logger.setup_logger("embeddings")
+
 
 def get_request_logger():
     return Logger.setup_logger("request")

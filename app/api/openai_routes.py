@@ -48,9 +48,9 @@ async def chat_completion(
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
     retries = 0
-    MAX_RETRIES = 3
+    max_retries = 3
 
-    while retries < MAX_RETRIES:
+    while retries < max_retries:
         try:
             response = await chat_service.create_chat_completion(
                 request=request,
@@ -64,13 +64,13 @@ async def chat_completion(
 
         except Exception as e:
             logger.warning(
-                f"API call failed with error: {str(e)}. Attempt {retries + 1} of {MAX_RETRIES}"
+                f"API call failed with error: {str(e)}. Attempt {retries + 1} of {max_retries}"
             )
             api_key = await key_manager.handle_api_failure(api_key)
             logger.info(f"Switched to new API key: {api_key}")
             retries += 1
-            if retries >= MAX_RETRIES:
-                logger.error(f"Max retries ({MAX_RETRIES}) reached. Raising error")
+            if retries >= max_retries:
+                logger.error(f"Max retries ({max_retries}) reached. Raising error")
                 raise
 
 

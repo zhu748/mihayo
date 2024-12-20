@@ -1,5 +1,8 @@
+from typing import Union, List
+
 import openai
-from typing import Union, List, Dict, Any
+from openai.types import CreateEmbeddingResponse
+
 from app.core.logger import get_embeddings_logger
 
 logger = get_embeddings_logger()
@@ -11,7 +14,7 @@ class EmbeddingService:
 
     async def create_embedding(
         self, input_text: Union[str, List[str]], model: str, api_key: str
-    ) -> Dict[str, Any]:
+    ) -> CreateEmbeddingResponse:
         """Create embeddings using OpenAI API"""
         try:
             client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
