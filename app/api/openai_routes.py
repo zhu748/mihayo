@@ -53,13 +53,8 @@ async def chat_completion(
     while retries < MAX_RETRIES:
         try:
             response = await chat_service.create_chat_completion(
-                messages=request.messages,
-                model=request.model,
-                temperature=request.temperature,
-                stream=request.stream,
+                request=request,
                 api_key=api_key,
-                tools=request.tools,
-                tool_choice=request.tool_choice,
             )
 
             # 处理流式响应

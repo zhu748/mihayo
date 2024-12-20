@@ -8,7 +8,10 @@ class ChatRequest(BaseModel):
     temperature: Optional[float] = 0.7
     stream: Optional[bool] = False
     tools: Optional[List[dict]] = []
-    tool_choice: Optional[str] = "auto"
+    max_tokens: Optional[int] = 8192
+    stop: Optional[List[str]] = []
+    top_p: Optional[float] = 0.9
+    top_k: Optional[int] = 40
 
 
 class EmbeddingRequest(BaseModel):
