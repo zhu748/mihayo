@@ -260,8 +260,8 @@ class ChatService:
                 while retries < max_retries:
                     try:
                         timeout = httpx.Timeout(
-                            60.0, read=60.0
-                        )  # 连接超时60秒，读取超时60秒
+                            300.0, read=300.0
+                        )  # 连接超时300秒，读取超时300秒
                         async with httpx.AsyncClient(timeout=timeout) as async_client:
                             stream_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:streamGenerateContent?alt=sse&key={current_api_key}"
                             async with async_client.stream(
@@ -344,7 +344,7 @@ class ChatService:
             return generate()
         else:
             try:
-                timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时60秒，读取超时60秒
+                timeout = httpx.Timeout(300.0, read=300.0)  # 连接超时300秒，读取超时300秒
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
                     response = await client.post(url, json=payload)
@@ -375,7 +375,7 @@ class ChatService:
         """调用Gemini API生成内容"""
         url = f"{self.base_url}/models/{model_name}:generateContent?key={api_key}"
 
-        timeout = httpx.Timeout(60.0, read=60.0)  # 连接超时30秒，读取超时60秒
+        timeout = httpx.Timeout(300.0, read=300.0)  # 连接超时300秒，读取超时300秒
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 response = await client.post(url, json=request.model_dump())
@@ -403,7 +403,7 @@ class ChatService:
         while retries < MAX_RETRIES:
             try:
                 url = f"{self.base_url}/models/{model_name}:streamGenerateContent?alt=sse&key={current_api_key}"
-                timeout = httpx.Timeout(60.0, read=60.0)
+                timeout = httpx.Timeout(300.0, read=300.0)
 
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     async with client.stream(
