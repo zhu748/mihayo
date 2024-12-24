@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     MODEL_SEARCH: List[str] = ["gemini-2.0-flash-exp"]
     TOOLS_CODE_EXECUTION_ENABLED: bool = False
     SHOW_SEARCH_LINK: bool = True
-
+    SHOW_THINKING_PROCESS: bool = True
+    
     class Config:
         env_file = ".env"
 

@@ -72,6 +72,7 @@ class ChatService:
         self.base_url = base_url
         self.key_manager = key_manager
         self.thinking_first = True
+        self.thinking_status = False
 
     def convert_gemini_response_to_openai(
         self,
@@ -90,31 +91,49 @@ class ChatService:
                     parts = content.get("parts", [])
 
                     if "thinking" in model:
-                        if len(parts) == 1:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = "\n🤔 **思考过程** 🤔\n---\n```\n" + parts[
-                                    0
-                                ].get("text")
-                            else:
-                                text = parts[0].get("text")
-                        elif len(parts) == 2:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = (
-                                    "\n🤔 **思考过程** 🤔\n---\n```\n"
-                                    + parts[0].get("text")
-                                    + "\n```\n---\n"
-                                    + parts[1].get("text")
-                                )
-                            else:
-                                text = (
-                                    parts[0].get("text")
-                                    + "\n```\n---\n"
-                                    + parts[1].get("text")
-                                )
+                        if settings.SHOW_THINKING_PROCESS:  
+                            if len(parts) == 1:
+                                if self.thinking_first:
+                                    self.thinking_first = False
+                                    self.thinking_status = True
+                                    text = "【思考过程】\n\n" + parts[0].get("text")
+                                else:
+                                    text = parts[0].get("text")
+
+                            if len(parts) == 2:
+                                self.thinking_status = False
+                                if self.thinking_first:
+                                    self.thinking_first = False
+                                    text = (
+                                        "【思考过程】\n\n"
+                                        + parts[0].get("text")
+                                        + "\n---\n【输出结果】\n\n"
+                                        + parts[1].get("text")
+                                    )
+                                else:
+                                    text = (
+                                        parts[0].get("text")
+                                        + "\n---\n【输出结果】\n\n"
+                                        + parts[1].get("text")
+                                    )
                         else:
-                            text = ""
+                            if len(parts) == 1:
+                                if self.thinking_first:
+                                    self.thinking_first = False
+                                    self.thinking_status = True
+                                    text = ""
+                                elif self.thinking_status:
+                                    text = ""
+                                else:
+                                    text = parts[0].get("text")
+            
+                            if len(parts) == 2:
+                                self.thinking_status = False
+                                if self.thinking_first:
+                                    self.thinking_first = False
+                                    text = parts[1].get("text")
+                                else:
+                                    text = parts[1].get("text")
                     else:
                         if "text" in parts[0]:
                             text = parts[0].get("text")
@@ -180,12 +199,15 @@ class ChatService:
                 if response.get("candidates"):
                     candidate = response["candidates"][0]
                     if "thinking" in model:
-                        text = (
-                            "\n🤔 **思考过程** 🤔\n---\n```\n"
-                            + candidate["content"]["parts"][0]["text"]
-                            + "\n```\n---\n"
-                            + candidate["content"]["parts"][1]["text"]
-                        )
+                        if settings.SHOW_THINKING_PROCESS:
+                            text = (
+                                "【思考过程】\n\n"
+                                + candidate["content"]["parts"][0]["text"]
+                                + "\n---\n【输出结果】\n\n"
+                                + candidate["content"]["parts"][1]["text"]
+                            )
+                        else:
+                            text = candidate["content"]["parts"][1]["text"] 
                     else:
                         text = candidate["content"]["parts"][0]["text"]
 
