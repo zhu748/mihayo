@@ -15,7 +15,7 @@ router = APIRouter()
 logger = get_openai_logger()
 
 # 初始化服务
-security_service = SecurityService(settings.ALLOWED_TOKENS)
+security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
 chat_service = ChatService(settings.BASE_URL, key_manager)
@@ -100,7 +100,7 @@ async def embedding(
 @router.get("/hf/v1/keys/list")
 async def get_keys_list(
     authorization: str = Header(None),
-    token: str = Depends(security_service.verify_authorization),
+    token: str = Depends(security_service.verify_auth_token),
 ):
     """获取有效和无效的API key列表"""
     logger.info("-" * 50 + "get_keys_list" + "-" * 50)

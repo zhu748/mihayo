@@ -6,11 +6,12 @@ logger = get_security_logger()
 
 
 class SecurityService:
-    def __init__(self, allowed_tokens: list):
+    def __init__(self, allowed_tokens: list, auth_token: str):
         self.allowed_tokens = allowed_tokens
+        self.auth_token = auth_token
 
     async def verify_key(self, key: str):
-        if key not in self.allowed_tokens:
+        if key not in self.allowed_tokens and key != self.auth_token:
             logger.error("Invalid key")
             raise HTTPException(status_code=401, detail="Invalid key")
         return key
@@ -29,7 +30,7 @@ class SecurityService:
             )
 
         token = authorization.replace("Bearer ", "")
-        if token not in self.allowed_tokens:
+        if token not in self.allowed_tokens and token != self.auth_token:
             logger.error("Invalid token")
             raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -41,8 +42,19 @@ class SecurityService:
             logger.error("Missing x-goog-api-key header")
             raise HTTPException(status_code=401, detail="Missing x-goog-api-key header")
 
-        if x_goog_api_key not in self.allowed_tokens:
+        if x_goog_api_key not in self.allowed_tokens and x_goog_api_key != self.auth_token:
             logger.error("Invalid x-goog-api-key")
             raise HTTPException(status_code=401, detail="Invalid x-goog-api-key")
         
         return x_goog_api_key
+
+    async def verify_auth_token(self, authorization: Optional[str] = Header(None)) -> str:
+        if not authorization:
+            logger.error("Missing auth_token header")
+            raise HTTPException(status_code=401, detail="Missing auth_token header")
+        token = authorization.replace("Bearer ", "")
+        if token != self.auth_token:
+            logger.error("Invalid auth_token")
+            raise HTTPException(status_code=401, detail="Invalid auth_token")
+        
+        return token

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/gemini/v1beta")
 logger = get_gemini_logger()
 
 # 初始化服务
-security_service = SecurityService(settings.ALLOWED_TOKENS)
+security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
 chat_service = ChatService(base_url=settings.BASE_URL, key_manager=key_manager)

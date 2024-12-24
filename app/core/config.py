@@ -10,7 +10,13 @@ class Settings(BaseSettings):
     TOOLS_CODE_EXECUTION_ENABLED: bool = False
     SHOW_SEARCH_LINK: bool = True
     SHOW_THINKING_PROCESS: bool = True
-    
+    AUTH_TOKEN: str
+
+    def __init__(self):
+        super().__init__()
+        if not self.AUTH_TOKEN:
+            self.AUTH_TOKEN = self.ALLOWED_TOKENS[0] if self.ALLOWED_TOKENS else ""
+
     class Config:
         env_file = ".env"
 
