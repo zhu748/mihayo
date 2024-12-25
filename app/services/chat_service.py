@@ -335,7 +335,7 @@ class ChatService:
                                 "POST", stream_url, json=payload
                             ) as async_response:
                                 if async_response.status_code != 200:
-                                    error_content = await async_response.read()
+                                    error_content = await async_response.aread()
                                     error_msg = error_content.decode("utf-8")
                                     logger.error(
                                         f"API error: {async_response.status_code}, {error_msg}"
