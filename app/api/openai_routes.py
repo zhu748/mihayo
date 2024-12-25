@@ -18,7 +18,6 @@ logger = get_openai_logger()
 security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
-chat_service = ChatService(settings.BASE_URL, key_manager)
 embedding_service = EmbeddingService(settings.BASE_URL)
 
 
@@ -42,6 +41,7 @@ async def chat_completion(
     authorization: str = Header(None),
     token: str = Depends(security_service.verify_authorization),
 ):
+    chat_service = ChatService(settings.BASE_URL, key_manager)
     logger.info("-" * 50 + "chat_completion" + "-" * 50)
     logger.info(f"Handling chat completion request for model: {request.model}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     TOOLS_CODE_EXECUTION_ENABLED: bool = False
     SHOW_SEARCH_LINK: bool = True
     SHOW_THINKING_PROCESS: bool = True
-    AUTH_TOKEN: str
+    AUTH_TOKEN: str = ""
 
     def __init__(self):
         super().__init__()

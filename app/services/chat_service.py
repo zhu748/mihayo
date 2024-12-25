@@ -96,7 +96,7 @@ class ChatService:
                                 if self.thinking_first:
                                     self.thinking_first = False
                                     self.thinking_status = True
-                                    text = "【思考过程】\n\n" + parts[0].get("text")
+                                    text = "> thinking\n\n" + parts[0].get("text")
                                 else:
                                     text = parts[0].get("text")
 
@@ -105,15 +105,15 @@ class ChatService:
                                 if self.thinking_first:
                                     self.thinking_first = False
                                     text = (
-                                        "【思考过程】\n\n"
+                                        "> thinking\n\n"
                                         + parts[0].get("text")
-                                        + "\n---\n【输出结果】\n\n"
+                                        + "\n\n---\n> output\n\n"
                                         + parts[1].get("text")
                                     )
                                 else:
                                     text = (
                                         parts[0].get("text")
-                                        + "\n---\n【输出结果】\n\n"
+                                        + "\n\n---\n> output\n\n"
                                         + parts[1].get("text")
                                     )
                         else:
@@ -182,9 +182,7 @@ class ChatService:
                         "index": 0,
                         "message": {
                             "role": "assistant",
-                            "content": response["candidates"][0]["content"]["parts"][0][
-                                "text"
-                            ],
+                            "content": response["candidates"][0]["content"]["parts"][0]["text"],
                         },
                         "finish_reason": finish_reason,
                     }
@@ -200,14 +198,20 @@ class ChatService:
                     candidate = response["candidates"][0]
                     if "thinking" in model:
                         if settings.SHOW_THINKING_PROCESS:
-                            text = (
-                                "【思考过程】\n\n"
-                                + candidate["content"]["parts"][0]["text"]
-                                + "\n---\n【输出结果】\n\n"
-                                + candidate["content"]["parts"][1]["text"]
-                            )
+                            if len(candidate["content"]["parts"]) == 2:
+                                text = (
+                                    "> thinking\n\n"
+                                    + candidate["content"]["parts"][0]["text"]
+                                    + "\n\n---\n> output\n\n"
+                                    + candidate["content"]["parts"][1]["text"]
+                                )
+                            else:
+                                text = candidate["content"]["parts"][0]["text"]
                         else:
-                            text = candidate["content"]["parts"][1]["text"] 
+                            if len(candidate["content"]["parts"]) == 2:
+                                text = candidate["content"]["parts"][1]["text"] 
+                            else:
+                                text = candidate["content"]["parts"][0]["text"]
                     else:
                         text = candidate["content"]["parts"][0]["text"]
 

@@ -29,8 +29,9 @@ async def list_models(
     logger.info("Handling Gemini models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
-    return model_service.get_gemini_models(api_key)
-
+    models_json = model_service.get_gemini_models(api_key)
+    models_json["models"].append({"name": "models/gemini-2.0-flash-exp-search", "version": "2.0", "displayName": "Gemini 2.0 Flash Search Experimental", "description": "Gemini 2.0 Flash Search Experimental", "inputTokenLimit": 32767, "outputTokenLimit": 8192, "supportedGenerationMethods": ["generateContent", "countTokens"], "temperature": 1, "topP": 0.95, "topK": 64, "maxTemperature": 2})
+    return models_json
 
 @router.post("/models/{model_name}:generateContent")
 async def generate_content(
