@@ -21,6 +21,7 @@ model_service = ModelService(settings.MODEL_SEARCH)
 
 
 @router.get("/models")
+@router_v1beta.get("/models")
 async def list_models(
         key: str = None,
         token: str = Depends(security_service.verify_key),
@@ -35,11 +36,12 @@ async def list_models(
     return models_json
 
 @router.post("/models/{model_name}:generateContent")
+@router_v1beta.post("/models/{model_name}:generateContent")
 @RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
 async def generate_content(
         model_name: str,
         request: GeminiRequest,
-        # x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
         api_key: str = Depends(key_manager.get_next_working_key),
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
@@ -63,11 +65,12 @@ async def generate_content(
 
 
 @router.post("/models/{model_name}:streamGenerateContent")
+@router_v1beta.post("/models/{model_name}:streamGenerateContent")
 @RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
 async def stream_generate_content(
         model_name: str,
         request: GeminiRequest,
-        # x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
         api_key: str = Depends(key_manager.get_next_working_key),
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
