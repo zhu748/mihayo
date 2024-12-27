@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, Header
 from fastapi.responses import StreamingResponse
 
 from app.core.security import SecurityService
+from app.services.chat.retry_handler import RetryHandler
 from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
-from app.services.chat_service import ChatService
+from app.services.openai_chat_service import OpenAIChatService
 from app.services.embedding_service import EmbeddingService
 from app.schemas.openai_models import ChatRequest, EmbeddingRequest
 from app.core.config import settings
@@ -31,47 +32,42 @@ async def list_models(
     logger.info("Handling models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
-    return model_service.get_gemini_openai_models(api_key)
+    try:
+        return model_service.get_gemini_openai_models(api_key)
+    except Exception as e:
+        logger.error(f"Error getting models list: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error while fetching models list") from e
 
 
 @router.post("/v1/chat/completions")
 @router.post("/hf/v1/chat/completions")
+@RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
 async def chat_completion(
     request: ChatRequest,
     authorization: str = Header(None),
     token: str = Depends(security_service.verify_authorization),
+    api_key: str = Depends(key_manager.get_next_working_key),
 ):
-    chat_service = ChatService(settings.BASE_URL, key_manager)
+    chat_service = OpenAIChatService(settings.BASE_URL, key_manager)
     logger.info("-" * 50 + "chat_completion" + "-" * 50)
     logger.info(f"Handling chat completion request for model: {request.model}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
-    api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
-    retries = 0
-    max_retries = 3
+    try:
+        response = await chat_service.create_chat_completion(
+            request=request,
+            api_key=api_key,
+        )
+        # 处理流式响应
+        if request.stream:
+            return StreamingResponse(response, media_type="text/event-stream")
+        logger.info("Chat completion request successful")
+        return response
 
-    while retries < max_retries:
-        try:
-            response = await chat_service.create_chat_completion(
-                request=request,
-                api_key=api_key,
-            )
-
-            # 处理流式响应
-            if request.stream:
-                return StreamingResponse(response, media_type="text/event-stream")
-            return response
-
-        except Exception as e:
-            logger.warning(
-                f"API call failed with error: {str(e)}. Attempt {retries + 1} of {max_retries}"
-            )
-            api_key = await key_manager.handle_api_failure(api_key)
-            logger.info(f"Switched to new API key: {api_key}")
-            retries += 1
-            if retries >= max_retries:
-                logger.error(f"Max retries ({max_retries}) reached. Raising error")
-                raise
+    except Exception as e:
+        logger.error(f"Chat completion failed after retries: {str(e)}")
+        raise HTTPException(status_code=500, detail="Chat completion failed") from e
+        
 
 
 @router.post("/v1/embeddings")
@@ -93,7 +89,7 @@ async def embedding(
         return response
     except Exception as e:
         logger.error(f"Embedding request failed: {str(e)}")
-        raise
+        raise HTTPException(status_code=500, detail="Embedding request failed") from e
 
 
 @router.get("/v1/keys/list")
@@ -120,4 +116,4 @@ async def get_keys_list(
         raise HTTPException(
             status_code=500,
             detail="Internal server error while fetching keys list"
-        )
+        ) from e

@@ -125,3 +125,7 @@ def get_embeddings_logger():
 
 def get_request_logger():
     return Logger.setup_logger("request")
+
+
+def get_retry_logger():
+    return Logger.setup_logger("retry")

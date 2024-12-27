@@ -29,6 +29,7 @@ app.add_middleware(
 # 包含所有路由
 app.include_router(openai_routes.router)
 app.include_router(gemini_routes.router)
+app.include_router(gemini_routes.router_v1beta)
 
 
 @app.get("/health")

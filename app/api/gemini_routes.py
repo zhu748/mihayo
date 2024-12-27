@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -5,18 +6,18 @@ from app.core.config import settings
 from app.core.logger import get_gemini_logger
 from app.core.security import SecurityService
 from app.schemas.gemini_models import GeminiRequest
-from app.services.chat_service import ChatService
+from app.services.gemini_chat_service import GeminiChatService
 from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
-
+from app.services.chat.retry_handler import RetryHandler
 router = APIRouter(prefix="/gemini/v1beta")
+router_v1beta = APIRouter(prefix="/v1beta")
 logger = get_gemini_logger()
 
 # 初始化服务
 security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
-chat_service = ChatService(base_url=settings.BASE_URL, key_manager=key_manager)
 
 
 @router.get("/models")
@@ -34,58 +35,51 @@ async def list_models(
     return models_json
 
 @router.post("/models/{model_name}:generateContent")
+@RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
 async def generate_content(
         model_name: str,
         request: GeminiRequest,
-        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        # x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        api_key: str = Depends(key_manager.get_next_working_key),
 ):
+    chat_service = GeminiChatService(settings.BASE_URL, key_manager)
     """非流式生成内容"""
     logger.info("-" * 50 + "gemini_generate_content" + "-" * 50)
     logger.info(f"Handling Gemini content generation request for model: {model_name}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
-
-    api_key = await key_manager.get_next_working_key()
-    logger.info(f"Using API key: {api_key}")
-    retries = 0
-    MAX_RETRIES = 3
-
-    while retries < MAX_RETRIES:
-        try:
-            response = await chat_service.generate_content(
-                model_name=model_name,
-                request=request,
-                api_key=api_key
-            )
-            return response
-
-        except Exception as e:
-            logger.warning(
-                f"API call failed with error: {str(e)}. Attempt {retries + 1} of {MAX_RETRIES}"
-            )
-            api_key = await key_manager.handle_api_failure(api_key)
-            logger.info(f"Switched to new API key: {api_key}")
-            retries += 1
-            if retries >= MAX_RETRIES:
-                logger.error(f"Max retries ({MAX_RETRIES}) reached. Raising error")
-
-
-@router.post("/models/{model_name}:streamGenerateContent")
-async def stream_generate_content(
-        model_name: str,
-        request: GeminiRequest,
-        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
-):
-    """流式生成内容"""
-    logger.info("-" * 50 + "gemini_stream_generate_content" + "-" * 50)
-    logger.info(f"Handling Gemini streaming content generation for model: {model_name}")
-
-    api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
 
     try:
-        chat_service = ChatService(base_url=settings.BASE_URL, key_manager=key_manager)
-        response_stream = chat_service.stream_generate_content(
-            model_name=model_name,
+        response = chat_service.generate_content(
+            model=model_name,
+            request=request,
+            api_key=api_key
+        )
+        return response
+
+    except Exception as e:
+        logger.error(f"Chat completion failed after retries: {str(e)}")
+        raise HTTPException(status_code=500, detail="Chat completion failed") from e
+
+
+@router.post("/models/{model_name}:streamGenerateContent")
+@RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
+async def stream_generate_content(
+        model_name: str,
+        request: GeminiRequest,
+        # x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        api_key: str = Depends(key_manager.get_next_working_key),
+):
+    chat_service = GeminiChatService(settings.BASE_URL, key_manager)
+    """流式生成内容"""
+    logger.info("-" * 50 + "gemini_stream_generate_content" + "-" * 50)
+    logger.info(f"Handling Gemini streaming content generation for model: {model_name}")
+    logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
+    logger.info(f"Using API key: {api_key}")
+
+    try:
+        response_stream =chat_service.stream_generate_content(
+            model=model_name,
             request=request,
             api_key=api_key
         )
