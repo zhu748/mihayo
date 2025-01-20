@@ -86,7 +86,7 @@ class GeminiChatService:
                 {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "OFF"},
                 {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "OFF"},
                 {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "OFF"},
-                {"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_ONLY_HIGH"}
+                {"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "OFF"}
             ]
         return [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
