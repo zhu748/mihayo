@@ -44,67 +44,83 @@ class GeminiResponseHandler(ResponseHandler):
                 candidate = response["candidates"][0]
                 content = candidate.get("content", {})
                 parts = content.get("parts", [])
-                if "thinking" in model:
-                    if settings.SHOW_THINKING_PROCESS:  
-                        if len(parts) == 1:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                self.thinking_status = True
-                                text = "> thinking\n\n" + parts[0].get("text")
-                            else:
-                                text = parts[0].get("text")
+                # if "thinking" in model:
+                #     if settings.SHOW_THINKING_PROCESS:  
+                #         if len(parts) == 1:
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 self.thinking_status = True
+                #                 text = "> thinking\n\n" + parts[0].get("text")
+                #             else:
+                #                 text = parts[0].get("text")
 
-                        if len(parts) == 2:
-                            self.thinking_status = False
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = (
-                                    "> thinking\n\n"
-                                    + parts[0].get("text")
-                                    + "\n\n---\n> output\n\n"
-                                    + parts[1].get("text")
-                                )
-                            else:
-                                text = (
-                                    parts[0].get("text")
-                                    + "\n\n---\n> output\n\n"
-                                    + parts[1].get("text")
-                                )
-                    else:
-                        if len(parts) == 1:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                self.thinking_status = True
-                                text = ""
-                            elif self.thinking_status:
-                                text = ""
-                            else:
-                                text = parts[0].get("text")
+                #         if len(parts) == 2:
+                #             self.thinking_status = False
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 text = (
+                #                     "> thinking\n\n"
+                #                     + parts[0].get("text")
+                #                     + "\n\n---\n> output\n\n"
+                #                     + parts[1].get("text")
+                #                 )
+                #             else:
+                #                 text = (
+                #                     parts[0].get("text")
+                #                     + "\n\n---\n> output\n\n"
+                #                     + parts[1].get("text")
+                #                 )
+                #     else:
+                #         if len(parts) == 1:
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 self.thinking_status = True
+                #                 text = ""
+                #             elif self.thinking_status:
+                #                 text = ""
+                #             else:
+                #                 text = parts[0].get("text")
 
-                        if len(parts) == 2:
-                            self.thinking_status = False
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = parts[1].get("text")
-                            else:
-                                text = parts[1].get("text")
+                #         if len(parts) == 2:
+                #             self.thinking_status = False
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 text = parts[1].get("text")
+                #             else:
+                #                 text = parts[1].get("text")
+                # else:
+                #     if "text" in parts[0]:
+                #         text = parts[0].get("text")
+                #     elif "executableCode" in parts[0]:
+                #         text = _format_code_block(parts[0]["executableCode"])
+                #     elif "codeExecution" in parts[0]:
+                #         text = _format_code_block(parts[0]["codeExecution"])
+                #     elif "executableCodeResult" in parts[0]:
+                #         text = _format_execution_result(
+                #             parts[0]["executableCodeResult"]
+                #         )
+                #     elif "codeExecutionResult" in parts[0]:
+                #         text = _format_execution_result(
+                #             parts[0]["codeExecutionResult"]
+                #         )
+                #     else:
+                #         text = ""
+                if "text" in parts[0]:
+                    text = parts[0].get("text")
+                elif "executableCode" in parts[0]:
+                    text = _format_code_block(parts[0]["executableCode"])
+                elif "codeExecution" in parts[0]:
+                    text = _format_code_block(parts[0]["codeExecution"])
+                elif "executableCodeResult" in parts[0]:
+                    text = _format_execution_result(
+                        parts[0]["executableCodeResult"]
+                    )
+                elif "codeExecutionResult" in parts[0]:
+                    text = _format_execution_result(
+                        parts[0]["codeExecutionResult"]
+                    )
                 else:
-                    if "text" in parts[0]:
-                        text = parts[0].get("text")
-                    elif "executableCode" in parts[0]:
-                        text = _format_code_block(parts[0]["executableCode"])
-                    elif "codeExecution" in parts[0]:
-                        text = _format_code_block(parts[0]["codeExecution"])
-                    elif "executableCodeResult" in parts[0]:
-                        text = _format_execution_result(
-                            parts[0]["executableCodeResult"]
-                        )
-                    elif "codeExecutionResult" in parts[0]:
-                        text = _format_execution_result(
-                            parts[0]["codeExecutionResult"]
-                        )
-                    else:
-                        text = ""
+                    text = ""
                 text = _add_search_link_text(model, candidate, text)
         else:
             if response.get("candidates"):
@@ -166,8 +182,7 @@ class OpenAIResponseHandler(ResponseHandler):
                 "finish_reason": finish_reason
             }]
         }
-
-        
+       
     def _handle_normal_response(self, response: Dict[str, Any], model: str, finish_reason: str) -> Dict[str, Any]:
         text = self._extract_text(response, model, stream=False)
         return {
@@ -197,67 +212,84 @@ class OpenAIResponseHandler(ResponseHandler):
                 candidate = response["candidates"][0]
                 content = candidate.get("content", {})
                 parts = content.get("parts", [])
-                if "thinking" in model:
-                    if settings.SHOW_THINKING_PROCESS:  
-                        if len(parts) == 1:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                self.thinking_status = True
-                                text = "> thinking\n\n" + parts[0].get("text")
-                            else:
-                                text = parts[0].get("text")
+                # if "thinking" in model:
+                #     if settings.SHOW_THINKING_PROCESS:  
+                #         if len(parts) == 1:
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 self.thinking_status = True
+                #                 text = "> thinking\n\n" + parts[0].get("text")
+                #             else:
+                #                 text = parts[0].get("text")
 
-                        if len(parts) == 2:
-                            self.thinking_status = False
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = (
-                                    "> thinking\n\n"
-                                    + parts[0].get("text")
-                                    + "\n\n---\n> output\n\n"
-                                    + parts[1].get("text")
-                                )
-                            else:
-                                text = (
-                                    parts[0].get("text")
-                                    + "\n\n---\n> output\n\n"
-                                    + parts[1].get("text")
-                                )
-                    else:
-                        if len(parts) == 1:
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                self.thinking_status = True
-                                text = ""
-                            elif self.thinking_status:
-                                text = ""
-                            else:
-                                text = parts[0].get("text")
+                #         if len(parts) == 2:
+                #             self.thinking_status = False
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 text = (
+                #                     "> thinking\n\n"
+                #                     + parts[0].get("text")
+                #                     + "\n\n---\n> output\n\n"
+                #                     + parts[1].get("text")
+                #                 )
+                #             else:
+                #                 text = (
+                #                     parts[0].get("text")
+                #                     + "\n\n---\n> output\n\n"
+                #                     + parts[1].get("text")
+                #                 )
+                #     else:
+                #         if len(parts) == 1:
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 self.thinking_status = True
+                #                 text = ""
+                #             elif self.thinking_status:
+                #                 text = ""
+                #             else:
+                #                 text = parts[0].get("text")
 
-                        if len(parts) == 2:
-                            self.thinking_status = False
-                            if self.thinking_first:
-                                self.thinking_first = False
-                                text = parts[1].get("text")
-                            else:
-                                text = parts[1].get("text")
+                #         if len(parts) == 2:
+                #             self.thinking_status = False
+                #             if self.thinking_first:
+                #                 self.thinking_first = False
+                #                 text = parts[1].get("text")
+                #             else:
+                #                 text = parts[1].get("text")
+                # else:
+                #     if "text" in parts[0]:
+                #         text = parts[0].get("text")
+                #     elif "executableCode" in parts[0]:
+                #         text = _format_code_block(parts[0]["executableCode"])
+                #     elif "codeExecution" in parts[0]:
+                #         text = _format_code_block(parts[0]["codeExecution"])
+                #     elif "executableCodeResult" in parts[0]:
+                #         text = _format_execution_result(
+                #             parts[0]["executableCodeResult"]
+                #         )
+                #     elif "codeExecutionResult" in parts[0]:
+                #         text = _format_execution_result(
+                #             parts[0]["codeExecutionResult"]
+                #         )
+                #     else:
+                #         text = ""
+                # text = _add_search_link_text(model, candidate, text)
+                if "text" in parts[0]:
+                    text = parts[0].get("text")
+                elif "executableCode" in parts[0]:
+                    text = _format_code_block(parts[0]["executableCode"])
+                elif "codeExecution" in parts[0]:
+                    text = _format_code_block(parts[0]["codeExecution"])
+                elif "executableCodeResult" in parts[0]:
+                    text = _format_execution_result(
+                        parts[0]["executableCodeResult"]
+                    )
+                elif "codeExecutionResult" in parts[0]:
+                    text = _format_execution_result(
+                        parts[0]["codeExecutionResult"]
+                    )
                 else:
-                    if "text" in parts[0]:
-                        text = parts[0].get("text")
-                    elif "executableCode" in parts[0]:
-                        text = _format_code_block(parts[0]["executableCode"])
-                    elif "codeExecution" in parts[0]:
-                        text = _format_code_block(parts[0]["codeExecution"])
-                    elif "executableCodeResult" in parts[0]:
-                        text = _format_execution_result(
-                            parts[0]["executableCodeResult"]
-                        )
-                    elif "codeExecutionResult" in parts[0]:
-                        text = _format_execution_result(
-                            parts[0]["codeExecutionResult"]
-                        )
-                    else:
-                        text = ""
+                    text = ""
                 text = _add_search_link_text(model, candidate, text)
         else:
             if response.get("candidates"):

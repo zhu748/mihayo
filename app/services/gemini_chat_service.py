@@ -32,6 +32,7 @@ class GeminiChatService:
         while retries < max_retries:
             try:
                 async for line in self.api_client.stream_generate_content(payload, model, api_key):
+                    # print(line)
                     if line.startswith("data:"):
                         line = line[6:]
                         line = json.dumps(self.response_handler.handle_response(json.loads(line), model, stream=True))
@@ -80,7 +81,7 @@ class GeminiChatService:
         
     def _get_safety_settings(self, model: str) -> List[Dict[str, str]]:
         """获取安全设置"""
-        if "2.0" in model and model != "gemini-2.0-flash-thinking-exp":
+        if "2.0" in model and "gemini-2.0-flash-thinking-exp" not in model:
             return [
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "OFF"},
                 {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "OFF"},
