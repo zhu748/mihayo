@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     SHOW_SEARCH_LINK: bool = True
     SHOW_THINKING_PROCESS: bool = True
     AUTH_TOKEN: str = ""
+    MAX_FAILURES: int = 3
 
     def __init__(self):
         super().__init__()

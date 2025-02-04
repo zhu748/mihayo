@@ -2,6 +2,7 @@ import asyncio
 from itertools import cycle
 from typing import Dict
 from app.core.logger import get_key_manager_logger
+from app.core.config import settings
 
 logger = get_key_manager_logger()
 
@@ -13,7 +14,7 @@ class KeyManager:
         self.key_cycle_lock = asyncio.Lock()
         self.failure_count_lock = asyncio.Lock()
         self.key_failure_counts: Dict[str, int] = {key: 0 for key in api_keys}
-        self.MAX_FAILURES = 10
+        self.MAX_FAILURES = settings.MAX_FAILURES
 
     async def get_next_key(self) -> str:
         """获取下一个API key"""
