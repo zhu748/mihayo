@@ -81,7 +81,7 @@ class GeminiChatService:
         
     def _get_safety_settings(self, model: str) -> List[Dict[str, str]]:
         """获取安全设置"""
-        if "2.0" in model and "gemini-2.0-flash-thinking-exp" not in model:
+        if model == "gemini-2.0-flash-exp":
             return [
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "OFF"},
                 {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "OFF"},
