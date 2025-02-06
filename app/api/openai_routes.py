@@ -1,16 +1,15 @@
-from http.client import HTTPException
-from fastapi import APIRouter, Depends, Header
+from fastapi import HTTPException, APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.core.config import settings
+from app.core.logger import get_openai_logger
 from app.core.security import SecurityService
+from app.schemas.openai_models import ChatRequest, EmbeddingRequest
 from app.services.chat.retry_handler import RetryHandler
+from app.services.embedding_service import EmbeddingService
 from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
 from app.services.openai_chat_service import OpenAIChatService
-from app.services.embedding_service import EmbeddingService
-from app.schemas.openai_models import ChatRequest, EmbeddingRequest
-from app.core.config import settings
-from app.core.logger import get_openai_logger
 
 router = APIRouter()
 logger = get_openai_logger()
@@ -24,10 +23,7 @@ embedding_service = EmbeddingService(settings.BASE_URL)
 
 @router.get("/v1/models")
 @router.get("/hf/v1/models")
-async def list_models(
-    authorization: str = Header(None),
-    token: str = Depends(security_service.verify_authorization),
-):
+async def list_models(_=Depends(security_service.verify_authorization)):
     logger.info("-" * 50 + "list_models" + "-" * 50)
     logger.info("Handling models list request")
     api_key = await key_manager.get_next_working_key()
@@ -43,10 +39,9 @@ async def list_models(
 @router.post("/hf/v1/chat/completions")
 @RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
 async def chat_completion(
-    request: ChatRequest,
-    authorization: str = Header(None),
-    token: str = Depends(security_service.verify_authorization),
-    api_key: str = Depends(key_manager.get_next_working_key),
+        request: ChatRequest,
+        _=Depends(security_service.verify_authorization),
+        api_key: str = Depends(key_manager.get_next_working_key),
 ):
     chat_service = OpenAIChatService(settings.BASE_URL, key_manager)
     logger.info("-" * 50 + "chat_completion" + "-" * 50)
@@ -67,15 +62,13 @@ async def chat_completion(
     except Exception as e:
         logger.error(f"Chat completion failed after retries: {str(e)}")
         raise HTTPException(status_code=500, detail="Chat completion failed") from e
-        
 
 
 @router.post("/v1/embeddings")
 @router.post("/hf/v1/embeddings")
 async def embedding(
-    request: EmbeddingRequest,
-    authorization: str = Header(None),
-    token: str = Depends(security_service.verify_authorization),
+        request: EmbeddingRequest,
+        _=Depends(security_service.verify_authorization),
 ):
     logger.info("-" * 50 + "embedding" + "-" * 50)
     logger.info(f"Handling embedding request for model: {request.model}")
@@ -95,8 +88,7 @@ async def embedding(
 @router.get("/v1/keys/list")
 @router.get("/hf/v1/keys/list")
 async def get_keys_list(
-    authorization: str = Header(None),
-    token: str = Depends(security_service.verify_auth_token),
+        _=Depends(security_service.verify_auth_token),
 ):
     """获取有效和无效的API key列表"""
     logger.info("-" * 50 + "get_keys_list" + "-" * 50)

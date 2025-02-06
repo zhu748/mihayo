@@ -17,7 +17,7 @@ class SecurityService:
         return key
 
     async def verify_authorization(
-        self, authorization: Optional[str] = Header(None)
+            self, authorization: Optional[str] = Header(None)
     ) -> str:
         if not authorization:
             logger.error("Missing Authorization header")
@@ -45,7 +45,7 @@ class SecurityService:
         if x_goog_api_key not in self.allowed_tokens and x_goog_api_key != self.auth_token:
             logger.error("Invalid x-goog-api-key")
             raise HTTPException(status_code=401, detail="Invalid x-goog-api-key")
-        
+
         return x_goog_api_key
 
     async def verify_auth_token(self, authorization: Optional[str] = Header(None)) -> str:
@@ -56,5 +56,5 @@ class SecurityService:
         if token != self.auth_token:
             logger.error("Invalid auth_token")
             raise HTTPException(status_code=401, detail="Invalid auth_token")
-        
+
         return token

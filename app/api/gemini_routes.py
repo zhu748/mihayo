@@ -1,5 +1,4 @@
-from http.client import HTTPException
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
@@ -10,6 +9,7 @@ from app.services.gemini_chat_service import GeminiChatService
 from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
 from app.services.chat.retry_handler import RetryHandler
+
 router = APIRouter(prefix="/gemini/v1beta")
 router_v1beta = APIRouter(prefix="/v1beta")
 logger = get_gemini_logger()
@@ -22,18 +22,21 @@ model_service = ModelService(settings.MODEL_SEARCH)
 
 @router.get("/models")
 @router_v1beta.get("/models")
-async def list_models(
-        key: str = None,
-        token: str = Depends(security_service.verify_key),
-):
+async def list_models(_=Depends(security_service.verify_key)):
     """获取可用的Gemini模型列表"""
     logger.info("-" * 50 + "list_gemini_models" + "-" * 50)
     logger.info("Handling Gemini models list request")
     api_key = await key_manager.get_next_working_key()
     logger.info(f"Using API key: {api_key}")
     models_json = model_service.get_gemini_models(api_key)
-    models_json["models"].append({"name": "models/gemini-2.0-flash-exp-search", "version": "2.0", "displayName": "Gemini 2.0 Flash Search Experimental", "description": "Gemini 2.0 Flash Search Experimental", "inputTokenLimit": 32767, "outputTokenLimit": 8192, "supportedGenerationMethods": ["generateContent", "countTokens"], "temperature": 1, "topP": 0.95, "topK": 64, "maxTemperature": 2})
+    models_json["models"].append({"name": "models/gemini-2.0-flash-exp-search", "version": "2.0",
+                                  "displayName": "Gemini 2.0 Flash Search Experimental",
+                                  "description": "Gemini 2.0 Flash Search Experimental", "inputTokenLimit": 32767,
+                                  "outputTokenLimit": 8192,
+                                  "supportedGenerationMethods": ["generateContent", "countTokens"], "temperature": 1,
+                                  "topP": 0.95, "topK": 64, "maxTemperature": 2})
     return models_json
+
 
 @router.post("/models/{model_name}:generateContent")
 @router_v1beta.post("/models/{model_name}:generateContent")
@@ -41,7 +44,7 @@ async def list_models(
 async def generate_content(
         model_name: str,
         request: GeminiRequest,
-        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        _=Depends(security_service.verify_goog_api_key),
         api_key: str = Depends(key_manager.get_next_working_key),
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
@@ -70,7 +73,7 @@ async def generate_content(
 async def stream_generate_content(
         model_name: str,
         request: GeminiRequest,
-        x_goog_api_key: str = Depends(security_service.verify_goog_api_key),
+        _=Depends(security_service.verify_goog_api_key),
         api_key: str = Depends(key_manager.get_next_working_key),
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
@@ -81,7 +84,7 @@ async def stream_generate_content(
     logger.info(f"Using API key: {api_key}")
 
     try:
-        response_stream =chat_service.stream_generate_content(
+        response_stream = chat_service.stream_generate_content(
             model=model_name,
             request=request,
             api_key=api_key

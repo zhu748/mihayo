@@ -36,9 +36,9 @@ class ModelService:
             return None
 
     def convert_to_openai_models_format(
-        self, gemini_models: Dict[str, Any]
+            self, gemini_models: Dict[str, Any]
     ) -> Dict[str, Any]:
-        openai_format = {"object": "list", "data": [],"success": True}
+        openai_format = {"object": "list", "data": [], "success": True}
 
         for model in gemini_models.get("models", []):
             model_id = model["name"].split("/")[-1]

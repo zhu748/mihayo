@@ -6,331 +6,225 @@ import time
 import uuid
 from app.core.config import settings
 
+
 class ResponseHandler(ABC):
     """响应处理器基类"""
-    
+
     @abstractmethod
     def handle_response(self, response: Dict[str, Any], model: str, stream: bool = False) -> Dict[str, Any]:
         pass
 
+
 class GeminiResponseHandler(ResponseHandler):
     """Gemini响应处理器"""
-    
+
     def __init__(self):
         self.thinking_first = True
         self.thinking_status = False
-        
+
     def handle_response(self, response: Dict[str, Any], model: str, stream: bool = False) -> Dict[str, Any]:
         if stream:
-            return self._handle_stream_response(response, model, stream)
-        return self._handle_normal_response(response, model, stream)
-    
-    def _handle_stream_response(self, response: Dict[str, Any], model: str, stream: bool) -> Dict[str, Any]:
-        text = self._extract_text(response, model, stream=stream)
-        content = {"parts": [{"text": text}],"role": "model"}
-        response["candidates"][0]["content"] = content
-        return response
+            return _handle_gemini_stream_response(response, model, stream)
+        return _handle_gemini_normal_response(response, model, stream)
 
-    def _handle_normal_response(self, response: Dict[str, Any], model: str, stream: bool) -> Dict[str, Any]:
-        text = self._extract_text(response, model, stream=stream)
-        content = {"parts": [{"text": text}],"role": "model"}
-        response["candidates"][0]["content"] = content
-        return response
 
-    def _extract_text(self, response: Dict[str, Any], model: str, stream: bool = False) -> str:
-        text = ""
-        if stream:
-            if response.get("candidates"):
-                candidate = response["candidates"][0]
-                content = candidate.get("content", {})
-                parts = content.get("parts", [])
-                # if "thinking" in model:
-                #     if settings.SHOW_THINKING_PROCESS:  
-                #         if len(parts) == 1:
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 self.thinking_status = True
-                #                 text = "> thinking\n\n" + parts[0].get("text")
-                #             else:
-                #                 text = parts[0].get("text")
+def _handle_openai_stream_response(response: Dict[str, Any], model: str, finish_reason: str) -> Dict[str, Any]:
+    text = _extract_text(response, model, stream=True)
+    return {
+        "id": f"chatcmpl-{uuid.uuid4()}",
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {"content": text} if text else {},
+            "finish_reason": finish_reason
+        }]
+    }
 
-                #         if len(parts) == 2:
-                #             self.thinking_status = False
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 text = (
-                #                     "> thinking\n\n"
-                #                     + parts[0].get("text")
-                #                     + "\n\n---\n> output\n\n"
-                #                     + parts[1].get("text")
-                #                 )
-                #             else:
-                #                 text = (
-                #                     parts[0].get("text")
-                #                     + "\n\n---\n> output\n\n"
-                #                     + parts[1].get("text")
-                #                 )
-                #     else:
-                #         if len(parts) == 1:
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 self.thinking_status = True
-                #                 text = ""
-                #             elif self.thinking_status:
-                #                 text = ""
-                #             else:
-                #                 text = parts[0].get("text")
 
-                #         if len(parts) == 2:
-                #             self.thinking_status = False
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 text = parts[1].get("text")
-                #             else:
-                #                 text = parts[1].get("text")
-                # else:
-                #     if "text" in parts[0]:
-                #         text = parts[0].get("text")
-                #     elif "executableCode" in parts[0]:
-                #         text = _format_code_block(parts[0]["executableCode"])
-                #     elif "codeExecution" in parts[0]:
-                #         text = _format_code_block(parts[0]["codeExecution"])
-                #     elif "executableCodeResult" in parts[0]:
-                #         text = _format_execution_result(
-                #             parts[0]["executableCodeResult"]
-                #         )
-                #     elif "codeExecutionResult" in parts[0]:
-                #         text = _format_execution_result(
-                #             parts[0]["codeExecutionResult"]
-                #         )
-                #     else:
-                #         text = ""
-                if "text" in parts[0]:
-                    text = parts[0].get("text")
-                elif "executableCode" in parts[0]:
-                    text = _format_code_block(parts[0]["executableCode"])
-                elif "codeExecution" in parts[0]:
-                    text = _format_code_block(parts[0]["codeExecution"])
-                elif "executableCodeResult" in parts[0]:
-                    text = _format_execution_result(
-                        parts[0]["executableCodeResult"]
-                    )
-                elif "codeExecutionResult" in parts[0]:
-                    text = _format_execution_result(
-                        parts[0]["codeExecutionResult"]
-                    )
-                else:
-                    text = ""
-                text = _add_search_link_text(model, candidate, text)
-        else:
-            if response.get("candidates"):
-                candidate = response["candidates"][0]
-                if "thinking" in model:
-                    if settings.SHOW_THINKING_PROCESS:
-                        if len(candidate["content"]["parts"]) == 2:
-                            text = (
-                                "> thinking\n\n"
-                                + candidate["content"]["parts"][0]["text"]
-                                + "\n\n---\n> output\n\n"
-                                + candidate["content"]["parts"][1]["text"]
-                            )
-                        else:
-                            text = candidate["content"]["parts"][0]["text"]
-                    else:
-                        if len(candidate["content"]["parts"]) == 2:
-                            text = candidate["content"]["parts"][1]["text"] 
-                        else:
-                            text = candidate["content"]["parts"][0]["text"]
-                else:
-                    text = candidate["content"]["parts"][0]["text"]
-                text = _add_search_link_text(model, candidate, text)
-            else:
-                text = "暂无返回"
-        return text
-
+def _handle_openai_normal_response(response: Dict[str, Any], model: str, finish_reason: str) -> Dict[str, Any]:
+    text = _extract_text(response, model, stream=False)
+    return {
+        "id": f"chatcmpl-{uuid.uuid4()}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": text
+            },
+            "finish_reason": finish_reason
+        }],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+    }
 
 
 class OpenAIResponseHandler(ResponseHandler):
     """OpenAI响应处理器"""
-    
+
     def __init__(self, config):
         self.config = config
         self.thinking_first = True
         self.thinking_status = False
-        
+
     def handle_response(
-        self, 
-        response: Dict[str, Any], 
-        model: str,
-        stream: bool = False,
-        finish_reason: str = None
+            self,
+            response: Dict[str, Any],
+            model: str,
+            stream: bool = False,
+            finish_reason: str = None
     ) -> Optional[Dict[str, Any]]:
         if stream:
-            return self._handle_stream_response(response, model, finish_reason)
-        return self._handle_normal_response(response, model, finish_reason)
-        
-    def _handle_stream_response(self, response: Dict[str, Any], model: str, finish_reason: str) -> Dict[str, Any]:
-        text = self._extract_text(response, model, stream=True)
-        return {
-            "id": f"chatcmpl-{uuid.uuid4()}",
-            "object": "chat.completion.chunk",
-            "created": int(time.time()),
-            "model": model,
-            "choices": [{
-                "index": 0,
-                "delta": {"content": text} if text else {},
-                "finish_reason": finish_reason
-            }]
-        }
-       
-    def _handle_normal_response(self, response: Dict[str, Any], model: str, finish_reason: str) -> Dict[str, Any]:
-        text = self._extract_text(response, model, stream=False)
-        return {
-            "id": f"chatcmpl-{uuid.uuid4()}",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": model,
-            "choices": [{
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": text
-                },
-                "finish_reason": finish_reason
-            }],
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0
-            }
-        }
-    
-    def _extract_text(self, response: Dict[str, Any], model: str, stream: bool = False) -> str:
-        text = ""
-        if stream:
-            if response.get("candidates"):
-                candidate = response["candidates"][0]
-                content = candidate.get("content", {})
-                parts = content.get("parts", [])
-                # if "thinking" in model:
-                #     if settings.SHOW_THINKING_PROCESS:  
-                #         if len(parts) == 1:
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 self.thinking_status = True
-                #                 text = "> thinking\n\n" + parts[0].get("text")
-                #             else:
-                #                 text = parts[0].get("text")
+            return _handle_openai_stream_response(response, model, finish_reason)
+        return _handle_openai_normal_response(response, model, finish_reason)
 
-                #         if len(parts) == 2:
-                #             self.thinking_status = False
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 text = (
-                #                     "> thinking\n\n"
-                #                     + parts[0].get("text")
-                #                     + "\n\n---\n> output\n\n"
-                #                     + parts[1].get("text")
-                #                 )
-                #             else:
-                #                 text = (
-                #                     parts[0].get("text")
-                #                     + "\n\n---\n> output\n\n"
-                #                     + parts[1].get("text")
-                #                 )
-                #     else:
-                #         if len(parts) == 1:
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 self.thinking_status = True
-                #                 text = ""
-                #             elif self.thinking_status:
-                #                 text = ""
-                #             else:
-                #                 text = parts[0].get("text")
 
-                #         if len(parts) == 2:
-                #             self.thinking_status = False
-                #             if self.thinking_first:
-                #                 self.thinking_first = False
-                #                 text = parts[1].get("text")
-                #             else:
-                #                 text = parts[1].get("text")
-                # else:
-                #     if "text" in parts[0]:
-                #         text = parts[0].get("text")
-                #     elif "executableCode" in parts[0]:
-                #         text = _format_code_block(parts[0]["executableCode"])
-                #     elif "codeExecution" in parts[0]:
-                #         text = _format_code_block(parts[0]["codeExecution"])
-                #     elif "executableCodeResult" in parts[0]:
-                #         text = _format_execution_result(
-                #             parts[0]["executableCodeResult"]
-                #         )
-                #     elif "codeExecutionResult" in parts[0]:
-                #         text = _format_execution_result(
-                #             parts[0]["codeExecutionResult"]
-                #         )
-                #     else:
-                #         text = ""
-                # text = _add_search_link_text(model, candidate, text)
-                if "text" in parts[0]:
-                    text = parts[0].get("text")
-                elif "executableCode" in parts[0]:
-                    text = _format_code_block(parts[0]["executableCode"])
-                elif "codeExecution" in parts[0]:
-                    text = _format_code_block(parts[0]["codeExecution"])
-                elif "executableCodeResult" in parts[0]:
-                    text = _format_execution_result(
-                        parts[0]["executableCodeResult"]
-                    )
-                elif "codeExecutionResult" in parts[0]:
-                    text = _format_execution_result(
-                        parts[0]["codeExecutionResult"]
-                    )
-                else:
-                    text = ""
-                text = _add_search_link_text(model, candidate, text)
-        else:
-            if response.get("candidates"):
-                candidate = response["candidates"][0]
-                if "thinking" in model:
-                    if settings.SHOW_THINKING_PROCESS:
-                        if len(candidate["content"]["parts"]) == 2:
-                            text = (
+def _extract_text(response: Dict[str, Any], model: str, stream: bool = False) -> str:
+    text = ""
+    if stream:
+        if response.get("candidates"):
+            candidate = response["candidates"][0]
+            content = candidate.get("content", {})
+            parts = content.get("parts", [])
+            # if "thinking" in model:
+            #     if settings.SHOW_THINKING_PROCESS:
+            #         if len(parts) == 1:
+            #             if self.thinking_first:
+            #                 self.thinking_first = False
+            #                 self.thinking_status = True
+            #                 text = "> thinking\n\n" + parts[0].get("text")
+            #             else:
+            #                 text = parts[0].get("text")
+
+            #         if len(parts) == 2:
+            #             self.thinking_status = False
+            #             if self.thinking_first:
+            #                 self.thinking_first = False
+            #                 text = (
+            #                     "> thinking\n\n"
+            #                     + parts[0].get("text")
+            #                     + "\n\n---\n> output\n\n"
+            #                     + parts[1].get("text")
+            #                 )
+            #             else:
+            #                 text = (
+            #                     parts[0].get("text")
+            #                     + "\n\n---\n> output\n\n"
+            #                     + parts[1].get("text")
+            #                 )
+            #     else:
+            #         if len(parts) == 1:
+            #             if self.thinking_first:
+            #                 self.thinking_first = False
+            #                 self.thinking_status = True
+            #                 text = ""
+            #             elif self.thinking_status:
+            #                 text = ""
+            #             else:
+            #                 text = parts[0].get("text")
+
+            #         if len(parts) == 2:
+            #             self.thinking_status = False
+            #             if self.thinking_first:
+            #                 self.thinking_first = False
+            #                 text = parts[1].get("text")
+            #             else:
+            #                 text = parts[1].get("text")
+            # else:
+            #     if "text" in parts[0]:
+            #         text = parts[0].get("text")
+            #     elif "executableCode" in parts[0]:
+            #         text = _format_code_block(parts[0]["executableCode"])
+            #     elif "codeExecution" in parts[0]:
+            #         text = _format_code_block(parts[0]["codeExecution"])
+            #     elif "executableCodeResult" in parts[0]:
+            #         text = _format_execution_result(
+            #             parts[0]["executableCodeResult"]
+            #         )
+            #     elif "codeExecutionResult" in parts[0]:
+            #         text = _format_execution_result(
+            #             parts[0]["codeExecutionResult"]
+            #         )
+            #     else:
+            #         text = ""
+            if "text" in parts[0]:
+                text = parts[0].get("text")
+            elif "executableCode" in parts[0]:
+                text = _format_code_block(parts[0]["executableCode"])
+            elif "codeExecution" in parts[0]:
+                text = _format_code_block(parts[0]["codeExecution"])
+            elif "executableCodeResult" in parts[0]:
+                text = _format_execution_result(
+                    parts[0]["executableCodeResult"]
+                )
+            elif "codeExecutionResult" in parts[0]:
+                text = _format_execution_result(
+                    parts[0]["codeExecutionResult"]
+                )
+            else:
+                text = ""
+            text = _add_search_link_text(model, candidate, text)
+    else:
+        if response.get("candidates"):
+            candidate = response["candidates"][0]
+            if "thinking" in model:
+                if settings.SHOW_THINKING_PROCESS:
+                    if len(candidate["content"]["parts"]) == 2:
+                        text = (
                                 "> thinking\n\n"
                                 + candidate["content"]["parts"][0]["text"]
                                 + "\n\n---\n> output\n\n"
                                 + candidate["content"]["parts"][1]["text"]
-                            )
-                        else:
-                            text = candidate["content"]["parts"][0]["text"]
+                        )
                     else:
-                        if len(candidate["content"]["parts"]) == 2:
-                            text = candidate["content"]["parts"][1]["text"] 
-                        else:
-                            text = candidate["content"]["parts"][0]["text"]
+                        text = candidate["content"]["parts"][0]["text"]
                 else:
-                    text = candidate["content"]["parts"][0]["text"]
-                text = _add_search_link_text(model, candidate, text)
+                    if len(candidate["content"]["parts"]) == 2:
+                        text = candidate["content"]["parts"][1]["text"]
+                    else:
+                        text = candidate["content"]["parts"][0]["text"]
             else:
-                text = "暂无返回"
-        return text
+                text = candidate["content"]["parts"][0]["text"]
+            text = _add_search_link_text(model, candidate, text)
+        else:
+            text = "暂无返回"
+    return text
 
-    
+
+def _handle_gemini_stream_response(response: Dict[str, Any], model: str, stream: bool) -> Dict[str, Any]:
+    text = _extract_text(response, model, stream=stream)
+    content = {"parts": [{"text": text}], "role": "model"}
+    response["candidates"][0]["content"] = content
+    return response
+
+
+def _handle_gemini_normal_response(response: Dict[str, Any], model: str, stream: bool) -> Dict[str, Any]:
+    text = _extract_text(response, model, stream=stream)
+    content = {"parts": [{"text": text}], "role": "model"}
+    response["candidates"][0]["content"] = content
+    return response
+
+
 def _format_code_block(code_data: dict) -> str:
     """格式化代码块输出"""
     language = code_data.get("language", "").lower()
     code = code_data.get("code", "").strip()
     return f"""\n\n---\n\n【代码执行】\n```{language}\n{code}\n```\n"""
-    
-    
-def _add_search_link_text(model:str, candidate:dict, text:str) -> str:
+
+
+def _add_search_link_text(model: str, candidate: dict, text: str) -> str:
     if (
-        settings.SHOW_SEARCH_LINK
-        and model.endswith("-search")
-        and "groundingMetadata" in candidate
-        and "groundingChunks" in candidate["groundingMetadata"]
+            settings.SHOW_SEARCH_LINK
+            and model.endswith("-search")
+            and "groundingMetadata" in candidate
+            and "groundingChunks" in candidate["groundingMetadata"]
     ):
         grounding_chunks = candidate["groundingMetadata"]["groundingChunks"]
         text += "\n\n---\n\n"
