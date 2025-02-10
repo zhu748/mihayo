@@ -51,29 +51,90 @@
 
 3. **配置**:
 
-    创建 `.env` 文件，并配置以下环境变量：
+    创建 `.env` 文件，并按以下分类配置环境变量：
 
     ```env
-    API_KEYS=["your-gemini-api-key-1", "your-gemini-api-key-2"]  # 你的 Gemini API 密钥列表
-    ALLOWED_TOKENS=["your-access-token-1", "your-access-token-2"] # 允许访问的 Token 列表
-    BASE_URL="https://generativelanguage.googleapis.com/v1beta"  # Gemini API 基础 URL, 保持默认即可
-    MODEL_SEARCH=["gemini-2.0-flash-exp"]  # 启用搜索功能的模型列表
-    TOOLS_CODE_EXECUTION_ENABLED=false  # 是否启用代码执行工具, 默认为 false
-    SHOW_SEARCH_LINK=true # 是否显示搜索链接
-    SHOW_THINKING_PROCESS=true # 是否显示思考过程
-    AUTH_TOKEN=""  # 备用token, 如果不设置, 默认为 ALLOWED_TOKENS 的第一个
-    MAX_FAILURES=3 # 允许单个key失败的次数
+    # 基础配置
+    BASE_URL="https://generativelanguage.googleapis.com/v1beta"  # Gemini API 基础 URL，默认无需修改
+    MAX_FAILURES=3  # 允许单个key失败的次数，默认3次
+
+    # 认证与安全配置
+    API_KEYS=["your-gemini-api-key-1", "your-gemini-api-key-2"]  # Gemini API 密钥列表，用于负载均衡
+    ALLOWED_TOKENS=["your-access-token-1", "your-access-token-2"]  # 允许访问的 Token 列表
+    AUTH_TOKEN=""  # 超级管理员token，具有所有权限，默认使用 ALLOWED_TOKENS 的第一个
+
+    # 模型功能配置
+    MODEL_SEARCH=["gemini-2.0-flash-exp"]  # 支持搜索功能的模型列表
+    TOOLS_CODE_EXECUTION_ENABLED=false  # 是否启用代码执行工具，默认false
+    SHOW_SEARCH_LINK=true  # 是否在响应中显示搜索结果链接，默认true
+    SHOW_THINKING_PROCESS=true  # 是否显示模型思考过程，默认true
+
+    # 图片生成配置
+    PAID_KEY="your-paid-api-key"  # 付费版API Key，用于图片生成等高级功能
+    CREATE_IMAGE_MODEL="imagen-3.0-generate-002"  # 图片生成模型，默认使用imagen-3.0
+    
+    # 图片上传配置
+    UPLOAD_PROVIDER="smms"  # 图片上传提供商，目前支持smms
+    SMMS_SECRET_TOKEN="your-smms-token"  # SM.MS图床的API Token
     ```
 
-    - `API_KEYS`: 你的 Gemini API 密钥列表，支持多个 Key 轮询。
-    - `ALLOWED_TOKENS`: 允许访问的 Token 列表，用于 API 认证。
-    - `BASE_URL`: Gemini API 的基础 URL，通常不需要修改。
-    - `MODEL_SEARCH`: 启用搜索功能的模型列表。
-    - `TOOLS_CODE_EXECUTION_ENABLED`: 是否启用代码执行工具, 默认为 `false`。
-    - `SHOW_SEARCH_LINK`: 是否显示搜索结果链接（当使用搜索模型时）。
-    - `SHOW_THINKING_PROCESS`: 是否显示模型的"思考"过程（对于某些模型）。
-    - `AUTH_TOKEN`: 主鉴权token(权限较大，注意保管), 如果不设置, 默认为 `ALLOWED_TOKENS` 的第一个。
-    - `MAX_FAILURES`: 允许单个 API Key 失败的次数，超过此次数后该 Key 将被标记为无效。
+   ### 配置说明
+
+   #### 基础配置
+
+    - `BASE_URL`: Gemini API 的基础 URL
+      - 默认值: `https://generativelanguage.googleapis.com/v1beta`
+      - 说明: 通常无需修改，除非 API 地址发生变化
+    - `MAX_FAILURES`: API Key 允许的最大失败次数
+      - 默认值: `3`
+      - 说明: 超过此次数后，Key 将被暂时标记为无效
+
+   #### 认证与安全配置
+
+    - `API_KEYS`: Gemini API 密钥列表
+      - 格式: JSON 数组字符串
+      - 用途: 支持多个 Key 轮询，实现负载均衡
+      - 建议: 至少配置 2 个 Key 以保证服务可用性
+    - `ALLOWED_TOKENS`: 访问令牌列表
+      - 格式: JSON 数组字符串
+      - 用途: 用于客户端认证
+      - 安全提示: 请使用足够复杂的令牌
+    - `AUTH_TOKEN`: 超级管理员令牌
+      - 可选配置，留空则使用 ALLOWED_TOKENS 的第一个
+      - 具有查看 API Key 状态等特权操作权限
+
+   #### 模型功能配置
+
+    - `MODEL_SEARCH`: 搜索功能支持的模型
+      - 默认值: `["gemini-2.0-flash-exp"]`
+      - 说明: 仅列表中的模型可使用搜索功能
+    - `TOOLS_CODE_EXECUTION_ENABLED`: 代码执行功能
+      - 默认值: `false`
+      - 安全提示: 生产环境建议禁用
+    - `SHOW_SEARCH_LINK`: 搜索结果链接显示
+      - 默认值: `true`
+      - 用途: 控制搜索结果中是否包含原始链接
+    - `SHOW_THINKING_PROCESS`: 思考过程显示
+      - 默认值: `true`
+      - 用途: 显示模型的推理过程，便于调试
+
+   #### 图片生成配置
+
+    - `PAID_KEY`: 付费版 API Key
+      - 用途: 用于图片生成等高级功能
+      - 说明: 需要单独申请的付费版 Key
+    - `CREATE_IMAGE_MODEL`: 图片生成模型
+      - 默认值: `imagen-3.0-generate-002`
+      - 说明: 当前支持的最新图片生成模型
+
+   #### 图片上传配置
+
+    - `UPLOAD_PROVIDER`: 图片上传服务提供商
+      - 默认值: `smms`
+      - 说明: 目前支持 SM.MS 图床
+    - `SMMS_SECRET_TOKEN`: SM.MS API Token
+      - 用途: 用于图片上传到 SM.MS 图床
+      - 获取方式: 需要在 SM.MS 官网注册并获取
 
 ### ▶️ 运行
 
