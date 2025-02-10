@@ -54,7 +54,11 @@ async def chat_completion(
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
     logger.info(f"Using API key: {api_key}")
     try:
-        response = await chat_service.create_image_chat_completion(request=request)
+        # 如果model是imagen3,使用paid_key
+        if request.model == f"{settings.CREATE_IMAGE_MODEL}-chat":
+            response = await chat_service.create_image_chat_completion(request=request)
+        else:
+            response = await chat_service.create_chat_completion(request,api_key)
         # 处理流式响应
         if request.stream:
             return StreamingResponse(response, media_type="text/event-stream")
