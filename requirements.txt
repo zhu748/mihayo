@@ -6,3 +6,4 @@ pydantic_settings
 requests
 starlette
 uvicorn
+google-genai

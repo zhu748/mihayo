@@ -4,9 +4,10 @@ from fastapi.responses import StreamingResponse
 from app.core.config import settings
 from app.core.logger import get_openai_logger
 from app.core.security import SecurityService
-from app.schemas.openai_models import ChatRequest, EmbeddingRequest
+from app.schemas.openai_models import ChatRequest, EmbeddingRequest, ImageGenerationRequest
 from app.services.chat.retry_handler import RetryHandler
 from app.services.embedding_service import EmbeddingService
+from app.services.image_create_service import ImageCreateService
 from app.services.key_manager import KeyManager
 from app.services.model_service import ModelService
 from app.services.openai_chat_service import OpenAIChatService
@@ -19,6 +20,7 @@ security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
 key_manager = KeyManager(settings.API_KEYS)
 model_service = ModelService(settings.MODEL_SEARCH)
 embedding_service = EmbeddingService(settings.BASE_URL)
+image_create_service = ImageCreateService()
 
 
 @router.get("/v1/models")
@@ -43,16 +45,16 @@ async def chat_completion(
         _=Depends(security_service.verify_authorization),
         api_key: str = Depends(key_manager.get_next_working_key),
 ):
+    # 如果model是imagen3,使用paid_key
+    if request.model == f"{settings.CREATE_IMAGE_MODEL}-chat":
+        api_key = await key_manager.get_paid_key()
     chat_service = OpenAIChatService(settings.BASE_URL, key_manager)
     logger.info("-" * 50 + "chat_completion" + "-" * 50)
     logger.info(f"Handling chat completion request for model: {request.model}")
     logger.info(f"Request: \n{request.model_dump_json(indent=2)}")
     logger.info(f"Using API key: {api_key}")
     try:
-        response = await chat_service.create_chat_completion(
-            request=request,
-            api_key=api_key,
-        )
+        response = await chat_service.create_image_chat_completion(request=request)
         # 处理流式响应
         if request.stream:
             return StreamingResponse(response, media_type="text/event-stream")
@@ -62,6 +64,25 @@ async def chat_completion(
     except Exception as e:
         logger.error(f"Chat completion failed after retries: {str(e)}")
         raise HTTPException(status_code=500, detail="Chat completion failed") from e
+
+
+@router.post("/v1/images/generations")
+@router.post("/hf/v1/images/generations")
+async def generate_image(
+        request: ImageGenerationRequest,
+        _=Depends(security_service.verify_authorization),
+):
+    logger.info("-" * 50 + "generate_image" + "-" * 50)
+    logger.info(f"Handling image generation request for prompt: {request.prompt}")
+
+    try:
+        response = image_create_service.generate_images(request)
+        logger.info("Image generation request successful")
+        return response
+
+    except Exception as e:
+        logger.error(f"Image generation request failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Image generation request failed") from e
 
 
 @router.post("/v1/embeddings")

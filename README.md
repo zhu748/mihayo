@@ -16,6 +16,7 @@
 - **灵活配置**: 通过环境变量或 `.env` 文件轻松配置。
 - **易于部署**: 提供 Docker 一键部署，也支持手动部署。
 - **健康检查**: 提供健康检查接口，方便监控服务状态。
+- **图片生成支持**: 支持使用OpenAI的DALL-E模型生成图片
 
 ## 🛠️ 技术栈
 
@@ -38,8 +39,8 @@
 1. **克隆项目**:
 
     ```bash
-    git clone <your-repository-url>
-    cd <your-repository-name>
+    git clone https://github.com/snailyp/gemini-balance.git
+    cd gemini-balance
     ```
 
 2. **安装依赖**:
@@ -71,7 +72,7 @@
     - `TOOLS_CODE_EXECUTION_ENABLED`: 是否启用代码执行工具, 默认为 `false`。
     - `SHOW_SEARCH_LINK`: 是否显示搜索结果链接（当使用搜索模型时）。
     - `SHOW_THINKING_PROCESS`: 是否显示模型的"思考"过程（对于某些模型）。
-    - `AUTH_TOKEN`: 备用授权token, 如果不设置, 默认为 `ALLOWED_TOKENS` 的第一个。
+    - `AUTH_TOKEN`: 主鉴权token(权限较大，注意保管), 如果不设置, 默认为 `ALLOWED_TOKENS` 的第一个。
     - `MAX_FAILURES`: 允许单个 API Key 失败的次数，超过此次数后该 Key 将被标记为无效。
 
 ### ▶️ 运行
@@ -106,7 +107,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 认证
 
-所有 API 请求都需要在 Header 中添加 `Authorization` 字段，值为 `Bearer <your-token>`，其中 `<your-token>` 需要替换为你在 `.env` 文件中配置的 `ALLOWED_TOKENS` 中的一个。
+所有 API 请求都需要在 Header 中添加 `Authorization` 字段，值为 `Bearer <your-token>`，其中 `<your-token>` 需要替换为你在 `.env` 文件中配置的 `ALLOWED_TOKENS` 中的一个或者 `AUTH_TOKEN`。
 
 ### 获取模型列表
 
@@ -175,6 +176,22 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - **Header**: `Authorization: Bearer <your-auth-token>`
 - **说明**: 只有使用 `AUTH_TOKEN` 才能访问此接口, 用于获取有效和无效的 API Key 列表。
 
+### 图片生成 (Image Generation)
+
+- **URL**: `/v1/images/generations`
+- **Method**: `POST`
+- **Header**: `Authorization: Bearer <your-auth-token>`
+- **说明**: Body示例和参数说明
+
+    ```json
+    {
+    "model": "dall-e-3",
+    "prompt": "汉服美女",
+    "n": 1,
+    "size": "1024x1024"
+    }
+    ```
+
 ## 📚 代码结构
 
 ```plaintext
@@ -190,16 +207,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 │   ├── middleware/         # 中间件
 │   │   └── request_logging_middleware.py  # 请求日志中间件
 │   ├── schemas/            # 数据模型
-│   │   ├── gemini_models.py  # Gemini 请求/响应模型
-│   │   └── openai_models.py  # OpenAI 请求/响应模型
+│   │   ├── gemini_models.py  # Gemini 原始请求/响应模型
+│   │   └── openai_models.py  # OpenAI 兼容请求/响应模型
 │   ├── services/           # 服务层
 │   │   ├── chat/           # 聊天相关服务
 │   │   │   ├── api_client.py # API 客户端
 │   │   │   ├── message_converter.py # 消息转换器
 │   │   │   ├── response_handler.py # 响应处理器
 │   │   │   └── retry_handler.py #重试处理器
-│   │   ├── gemini_chat_service.py   # Gemini 聊天服务
-│   │   ├── openai_chat_service.py   # OpenAI 聊天服务
+│   │   ├── gemini_chat_service.py   # Gemini 原始聊天服务
+│   │   ├── openai_chat_service.py   # OpenAI 兼容聊天服务
 │   │   ├── embedding_service.py # 向量服务
 │   │   ├── key_manager.py    # API Key 管理
 │   │   └── model_service.py  # 模型服务

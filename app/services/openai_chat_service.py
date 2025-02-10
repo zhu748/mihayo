@@ -3,11 +3,11 @@
 import json
 from typing import Dict, Any, AsyncGenerator, List, Union
 from app.core.logger import get_openai_logger
-from app.services.chat.message_converter import OpenAIMessageConverter
 from app.services.chat.response_handler import OpenAIResponseHandler
 from app.services.chat.api_client import GeminiApiClient
-from app.schemas.openai_models import ChatRequest
+from app.schemas.openai_models import ChatRequest, ImageGenerationRequest
 from app.core.config import settings
+from app.services.image_create_service import ImageCreateService
 from app.services.key_manager import KeyManager
 
 logger = get_openai_logger()
@@ -31,9 +31,9 @@ def _build_tools(
     model = request.model
 
     if (
-        settings.TOOLS_CODE_EXECUTION_ENABLED
-        and not (model.endswith("-search") or "-thinking" in model)
-        and not _has_image_parts(messages)
+            settings.TOOLS_CODE_EXECUTION_ENABLED
+            and not (model.endswith("-search") or "-thinking" in model)
+            and not _has_image_parts(messages)
     ):
         tools.append({"code_execution": {}})
     if model.endswith("-search"):
@@ -86,16 +86,17 @@ def _build_payload(
 class OpenAIChatService:
     """聊天服务"""
 
-    def __init__(self, base_url: str, key_manager: KeyManager):
-        self.message_converter = OpenAIMessageConverter()
+    def __init__(self, base_url: str, key_manager: KeyManager = None):
+
         self.response_handler = OpenAIResponseHandler(config=None)
         self.api_client = GeminiApiClient(base_url)
         self.key_manager = key_manager
+        self.image_create_service = ImageCreateService()
 
     async def create_chat_completion(
-        self,
-        request: ChatRequest,
-        api_key: str,
+            self,
+            request: ChatRequest,
+            api_key: str,
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """创建聊天完成"""
         # 转换消息格式
@@ -109,7 +110,7 @@ class OpenAIChatService:
         return self._handle_normal_completion(request.model, payload, api_key)
 
     def _handle_normal_completion(
-        self, model: str, payload: Dict[str, Any], api_key: str
+            self, model: str, payload: Dict[str, Any], api_key: str
     ) -> Dict[str, Any]:
         """处理普通聊天完成"""
         response = self.api_client.generate_content(payload, model, api_key)
@@ -118,7 +119,7 @@ class OpenAIChatService:
         )
 
     async def _handle_stream_completion(
-        self, model: str, payload: Dict[str, Any], api_key: str
+            self, model: str, payload: Dict[str, Any], api_key: str
     ) -> AsyncGenerator[str, None]:
         """处理流式聊天完成，添加重试逻辑"""
         retries = 0
@@ -126,7 +127,7 @@ class OpenAIChatService:
         while retries < max_retries:
             try:
                 async for line in self.api_client.stream_generate_content(
-                    payload, model, api_key
+                        payload, model, api_key
                 ):
                     # print(line)
                     if line.startswith("data:"):
@@ -154,3 +155,38 @@ class OpenAIChatService:
                     yield f"data: {json.dumps({'error': 'Streaming failed after retries'})}\n\n"
                     yield "data: [DONE]\n\n"
                     break
+
+    async def create_image_chat_completion(
+            self,
+            request: ChatRequest,
+    ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+        
+        image_generate_request = ImageGenerationRequest()
+        image_generate_request.prompt = request.messages[-1]["content"]
+        image_res = self.image_create_service.generate_images_chat(image_generate_request)
+        
+        if request.stream:
+            return self._handle_stream_image_completion(request.model,image_res)
+        else:
+            return self._handle_normal_image_completion(request.model,image_res)
+        
+    async def _handle_stream_image_completion(
+            self, model: str, image_data: str
+    ) -> AsyncGenerator[str, None]:
+        if image_data:
+            openai_chunk = self.response_handler.handle_image_chat_response(
+                image_data, model, stream=True, finish_reason=None
+            )
+            if openai_chunk:
+                yield f"data: {json.dumps(openai_chunk)}\n\n"
+        yield f"data: {json.dumps(self.response_handler.handle_response({}, model, stream=True, finish_reason='stop'))}\n\n"
+        yield "data: [DONE]\n\n"
+        logger.info("Image chat streaming completed successfully")
+    
+    def _handle_normal_image_completion(
+            self, model: str, image_data: str
+    ) -> Dict[str, Any]:
+        
+        return self.response_handler.handle_image_chat_response(
+            image_data, model, stream=False, finish_reason="stop"
+        )

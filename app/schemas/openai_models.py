@@ -18,3 +18,13 @@ class EmbeddingRequest(BaseModel):
     input: Union[str, List[str]]
     model: str = "text-embedding-004"
     encoding_format: Optional[str] = "float"
+
+
+class ImageGenerationRequest(BaseModel):
+    model: str = "DALL-E-3"
+    prompt: str = ""
+    n: int = 1
+    size: Optional[str] = "1024x1024"
+    quality: Optional[str] = ""
+    style: Optional[str] = ""
+    response_format: Optional[str] = "b64_json"

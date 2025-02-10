@@ -129,3 +129,7 @@ def get_request_logger():
 
 def get_retry_logger():
     return Logger.setup_logger("retry")
+
+
+def get_image_create_logger():
+    return Logger.setup_logger("image_create")

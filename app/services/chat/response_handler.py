@@ -84,6 +84,47 @@ class OpenAIResponseHandler(ResponseHandler):
         if stream:
             return _handle_openai_stream_response(response, model, finish_reason)
         return _handle_openai_normal_response(response, model, finish_reason)
+    
+    def handle_image_chat_response(self, image_str: str, model: str, stream=False, finish_reason="stop"):
+        if stream:
+            return _handle_openai_stream_image_response(image_str,model,finish_reason)
+        return _handle_openai_normal_image_response(image_str,model,finish_reason)
+       
+            
+def _handle_openai_stream_image_response(image_str: str,model: str,finish_reason: str) -> Dict[str, Any]:
+    return {
+        "id": f"chatcmpl-{uuid.uuid4()}",
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {"content": image_str} if image_str else {},
+            "finish_reason": finish_reason
+        }]
+    }
+
+
+def _handle_openai_normal_image_response(image_str: str,model: str,finish_reason: str) -> Dict[str, Any]:
+    return {
+        "id": f"chatcmpl-{uuid.uuid4()}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": image_str
+            },
+            "finish_reason": finish_reason
+        }],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+    }
 
 
 def _extract_text(response: Dict[str, Any], model: str, stream: bool = False) -> str:

@@ -15,7 +15,11 @@ class KeyManager:
         self.failure_count_lock = asyncio.Lock()
         self.key_failure_counts: Dict[str, int] = {key: 0 for key in api_keys}
         self.MAX_FAILURES = settings.MAX_FAILURES
+        self.paid_key = settings.PAID_KEY
 
+    async def get_paid_key(self) -> str:
+        return self.paid_key
+        
     async def get_next_key(self) -> str:
         """获取下一个API key"""
         async with self.key_cycle_lock:
