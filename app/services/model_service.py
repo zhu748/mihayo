@@ -52,15 +52,14 @@ class ModelService:
                 "parent": None,
             }
             openai_format["data"].append(openai_model)
-            
-            if settings.CREATE_IMAGE_MODEL:
-                image_model = openai_model.copy()
-                image_model["id"] = f"{settings.CREATE_IMAGE_MODEL}-chat"
-                openai_format["data"].append(image_model)
 
             if model_id in self.model_search:
                 search_model = openai_model.copy()
                 search_model["id"] = f"{model_id}-search"
                 openai_format["data"].append(search_model)
 
+        if settings.CREATE_IMAGE_MODEL:
+            image_model = openai_model.copy()
+            image_model["id"] = f"{settings.CREATE_IMAGE_MODEL}-chat"
+            openai_format["data"].append(image_model)
         return openai_format
