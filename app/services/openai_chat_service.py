@@ -3,6 +3,7 @@
 import json
 from typing import Dict, Any, AsyncGenerator, List, Union
 from app.core.logger import get_openai_logger
+from app.services.chat.message_converter import OpenAIMessageConverter
 from app.services.chat.response_handler import OpenAIResponseHandler
 from app.services.chat.api_client import GeminiApiClient
 from app.schemas.openai_models import ChatRequest, ImageGenerationRequest
@@ -85,9 +86,8 @@ def _build_payload(
 
 class OpenAIChatService:
     """聊天服务"""
-
     def __init__(self, base_url: str, key_manager: KeyManager = None):
-
+        self.message_converter = OpenAIMessageConverter()
         self.response_handler = OpenAIResponseHandler(config=None)
         self.api_client = GeminiApiClient(base_url)
         self.key_manager = key_manager
