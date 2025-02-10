@@ -7,6 +7,8 @@ on:
 
 jobs:
   release:
+    permissions:
+      contents: write    # 添加写入权限
     runs-on: ubuntu-latest
     steps:
       # Step 1: 检出代码库
@@ -36,6 +38,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./your-build-file.zip # 替换为你的构建文件路径
-          asset_name: your-build-file.zip  # 替换为你的文件名
+          asset_path: ./gemini-balance.zip # 替换为你的构建文件路径
+          asset_name: gemini-balance.zip  # 替换为你的文件名
           asset_content_type: application/zip
