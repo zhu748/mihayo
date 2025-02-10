@@ -56,11 +56,17 @@ class ImageCreateService:
                     filename = f"{current_date}/{uuid.uuid4().hex[:8]}.png"
                     upload_response = image_uploader.upload(image_data,filename)
                     
-                # base64_image = base64.b64encode(image_data).decode('utf-8')
-                images_data.append({
-                    "url": f"{upload_response.data.url}",
-                    "revised_prompt": request.prompt
-                })
+                if request.response_format == "b64_json":
+                    base64_image = base64.b64encode(image_data).decode('utf-8')
+                    images_data.append({
+                        "b64_json": base64_image,
+                        "revised_prompt": request.prompt
+                    })
+                else:
+                    images_data.append({
+                        "url": f"{upload_response.data.url}",
+                        "revised_prompt": request.prompt
+                    })
 
             response_data = {
                 "created": int(time.time()),  # Current timestamp
@@ -76,6 +82,9 @@ class ImageCreateService:
         if image_datas:
             markdown_images = []
             for index, image_data in enumerate(image_datas):
-                markdown_images.append(f"![Generated Image {index+1}]({image_data['url']})")
+                if 'url' in image_data:
+                    markdown_images.append(f"![Generated Image {index+1}]({image_data['url']})")
+                else:
+                    # 如果是base64格式，创建data URL
+                    markdown_images.append(f"![Generated Image {index+1}](data:image/png;base64,{image_data['b64_json']})")
             return "\n".join(markdown_images)
-            
