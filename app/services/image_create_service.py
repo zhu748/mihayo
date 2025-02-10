@@ -19,8 +19,42 @@ class ImageCreateService:
         self.paid_key = settings.PAID_KEY
         self.aspect_ratio = aspect_ratio
 
+    def parse_prompt_parameters(self, prompt: str) -> tuple:
+        """从prompt中解析参数
+        支持的格式:
+        - {n:数量} 例如: {n:2} 生成2张图片
+        - {ratio:比例} 例如: {ratio:16:9} 使用16:9比例
+        """
+        import re
+        
+        # 默认值
+        n = 1
+        aspect_ratio = self.aspect_ratio
+        
+        # 解析n参数
+        n_match = re.search(r'{n:(\d+)}', prompt)
+        if n_match:
+            n = int(n_match.group(1))
+            if n < 1 or n > 4:
+                raise ValueError(f"Invalid n value: {n}. Must be between 1 and 4.")
+            prompt = prompt.replace(n_match.group(0), '').strip()
+            
+        # 解析ratio参数    
+        ratio_match = re.search(r'{ratio:(\d+:\d+)}', prompt)
+        if ratio_match:
+            aspect_ratio = ratio_match.group(1)
+            valid_ratios = ["1:1", "3:4", "4:3", "9:16", "16:9"]
+            if aspect_ratio not in valid_ratios:
+                raise ValueError(
+                    f"Invalid ratio: {aspect_ratio}. Must be one of: {', '.join(valid_ratios)}"
+                )
+            prompt = prompt.replace(ratio_match.group(0), '').strip()
+            
+        return prompt, n, aspect_ratio
+
     def generate_images(self, request: ImageGenerationRequest):
         client = genai.Client(api_key=self.paid_key)
+        
         if request.size == "1024x1024":
             self.aspect_ratio = "1:1"
         elif request.size == "1792x1024":
@@ -31,6 +65,18 @@ class ImageCreateService:
             raise ValueError(
                 f"Invalid size: {request.size}. Supported sizes are 1024x1024, 1792x1024, and 1024x1792."
             )
+
+        # 解析prompt中的参数
+        cleaned_prompt, prompt_n, prompt_ratio = self.parse_prompt_parameters(request.prompt)
+        request.prompt = cleaned_prompt
+        
+        # 如果prompt中指定了n，则覆盖请求中的n
+        if prompt_n > 1:
+            request.n = prompt_n
+            
+        # 如果prompt中指定了ratio，则覆盖默认的aspect_ratio
+        if prompt_ratio != self.aspect_ratio:
+            self.aspect_ratio = prompt_ratio
 
         response = client.models.generate_images(
             model=self.image_model,
