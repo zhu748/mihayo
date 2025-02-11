@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from app.core.logger import get_main_logger
 from app.core.security import verify_auth_token
 from app.services.key_manager import get_key_manager_instance
@@ -28,8 +27,6 @@ async def startup_event():
     global key_manager
     key_manager = await get_key_manager_instance(settings.API_KEYS)
 
-# 配置静态文件
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # 添加中间件来处理未经身份验证的请求
 @app.middleware("http")
