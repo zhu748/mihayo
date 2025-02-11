@@ -4,11 +4,11 @@
 
 ## 📝 项目简介
 
-本项目是一个基于 FastAPI 框架开发的高性能、易于部署的 OpenAI 和 Gemini API 代理服务。它不仅兼容 OpenAI 的 API 接口，还支持 Google 的 Gemini 模型，为用户提供灵活的模型选择。该代理服务内置了多 API Key 轮询、负载均衡、自动重试、访问控制（Bearer Token 认证）、流式响应等功能，旨在简化 AI 应用的开发和部署流程。
+本项目是一个基于 FastAPI 框架开发的高性能、易于部署的Gemini OpenAI兼容 和 Gemini API 代理服务。它不仅兼容 OpenAI 的 API 接口，还支持 Google 的 Gemini 原生接口。该代理服务内置了多 API Key 轮询、负载均衡、自动重试、访问控制（Bearer Token 认证）、流式响应等功能，旨在简化 AI 应用的开发和部署流程。
 
 **核心功能与优势:**
 
-- **多模型支持**: 无缝切换 OpenAI 和 Gemini 模型。
+- **多协议支持**: 无缝切换 OpenAI兼容 和 Gemini 协议。
 - **智能 API Key 管理**: 自动轮询多个 API Key，实现负载均衡和故障转移。
 - **安全访问控制**: 使用 Bearer Token 进行身份验证，保护 API 访问。
 - **流式响应支持**: 提供实时的流式数据传输，提升用户体验。
@@ -170,13 +170,30 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 所有 API 请求都需要在 Header 中添加 `Authorization` 字段，值为 `Bearer <your-token>`，其中 `<your-token>` 需要替换为你在 `.env` 文件中配置的 `ALLOWED_TOKENS` 中的一个或者 `AUTH_TOKEN`。
 
-### 获取模型列表
+### API 路由
+
+本服务提供两种API路由：
+
+1. **OpenAI 兼容路由** (推荐)
+   - 基础路径: `/v1`
+   - 完全兼容OpenAI API格式
+   - 支持所有Gemini模型
+
+2. **Gemini 原生路由**
+   - 基础路径: `/gemini/v1beta` 或 `/v1beta`
+   - 遵循Google原生API格式
+   - 适用于需要直接使用Gemini API的场景
+
+### OpenAI兼容路由
+
+#### 获取模型列表
 
 - **URL**: `/v1/models`
 - **Method**: `GET`
 - **Header**: `Authorization: Bearer <your-token>`
+- **Response**: 返回支持的所有模型列表，包括最新的`gemini-2.0-flash-exp-search`等模型
 
-### 聊天补全 (Chat Completions)
+#### 聊天补全 (Chat Completions)
 
 - **URL**: `/v1/chat/completions`
 - **Method**: `POST`
@@ -202,11 +219,34 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     }
     ```
 
-  - `messages`: 消息列表，格式与 OpenAI API 相同。
-  - `model`: 模型名称，例如 `gemini-1.5-flash-002`。
-  - `stream`: 是否开启流式响应，`true` 或 `false`。
-  - `tools`: 使用的工具列表。
-  - 其他参数：与 OpenAI API 兼容的参数，如 `temperature`, `max_tokens` 等。
+  - `messages`: 消息列表，格式与 OpenAI API 相同
+  - `model`: 模型名称，支持所有Gemini模型，包括:
+    - `gemini-1.5-flash-002`: 快速响应模型
+    - `gemini-2.0-flash-exp`: 实验性快速响应模型
+    - `gemini-2.0-flash-exp-search`: 支持搜索功能的实验性模型
+  - `stream`: 是否开启流式响应，`true` 或 `false`
+  - `tools`: 使用的工具列表
+  - 其他参数：与 OpenAI API 兼容的参数，如 `temperature`, `max_tokens` 等
+
+### Gemini原生路由
+
+#### 获取模型列表
+
+- **URL**: `/gemini/v1beta/models` 或 `/v1beta/models`
+- **Method**: `GET`
+- **Header**: `Authorization: Bearer <your-token>`
+
+#### 生成内容
+
+- **URL**: `/gemini/v1beta/models/{model_name}:generateContent`
+- **Method**: `POST`
+- **Header**: `Authorization: Bearer <your-token>`
+
+#### 流式生成内容
+
+- **URL**: `/gemini/v1beta/models/{model_name}:streamGenerateContent`
+- **Method**: `POST`
+- **Header**: `Authorization: Bearer <your-token>`
 
 ### 获取词向量 (Embeddings)
 
@@ -230,12 +270,30 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - **URL**: `/health`
 - **Method**: `GET`
 
-### 获取 API Key 列表
+### Web界面功能
+
+#### 验证页面
+
+- **URL**: `/auth`
+- **说明**: 提供了一个简洁的Web界面用于验证访问令牌
+- **功能**:
+  - 美观的用户界面，支持响应式设计
+  - 安全的令牌验证机制
+  - 错误提示功能
+  - 支持移动端访问
+
+#### API密钥状态管理
 
 - **URL**: `/v1/keys/list`
 - **Method**: `GET`
 - **Header**: `Authorization: Bearer <your-auth-token>`
-- **说明**: 只有使用 `AUTH_TOKEN` 才能访问此接口, 用于获取有效和无效的 API Key 列表。
+- **说明**:
+  - 只有使用 `AUTH_TOKEN` 才能访问此接口
+  - 提供了可视化的Web界面展示API密钥状态
+  - 支持查看有效和无效的API密钥列表
+  - 显示每个密钥的失败次数统计
+  - 提供一键复制功能（支持复制单个密钥或批量复制）
+  - 实时显示密钥总数统计
 
 ### 图片生成 (Image Generation)
 

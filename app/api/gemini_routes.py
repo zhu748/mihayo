@@ -6,7 +6,7 @@ from app.core.logger import get_gemini_logger
 from app.core.security import SecurityService
 from app.schemas.gemini_models import GeminiRequest
 from app.services.gemini_chat_service import GeminiChatService
-from app.services.key_manager import KeyManager
+from app.services.key_manager import KeyManager, get_key_manager_instance
 from app.services.model_service import ModelService
 from app.services.chat.retry_handler import RetryHandler
 
@@ -16,13 +16,20 @@ logger = get_gemini_logger()
 
 # 初始化服务
 security_service = SecurityService(settings.ALLOWED_TOKENS, settings.AUTH_TOKEN)
-key_manager = KeyManager(settings.API_KEYS)
+
+async def get_key_manager():
+    return await get_key_manager_instance()
+
+async def get_next_working_key_wrapper(key_manager: KeyManager = Depends(get_key_manager)):
+    return await key_manager.get_next_working_key()
+
 model_service = ModelService(settings.MODEL_SEARCH)
 
 
 @router.get("/models")
 @router_v1beta.get("/models")
-async def list_models(_=Depends(security_service.verify_key)):
+async def list_models(_=Depends(security_service.verify_key),
+    key_manager: KeyManager = Depends(get_key_manager)):
     """获取可用的Gemini模型列表"""
     logger.info("-" * 50 + "list_gemini_models" + "-" * 50)
     logger.info("Handling Gemini models list request")
@@ -40,12 +47,13 @@ async def list_models(_=Depends(security_service.verify_key)):
 
 @router.post("/models/{model_name}:generateContent")
 @router_v1beta.post("/models/{model_name}:generateContent")
-@RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
+@RetryHandler(max_retries=3, key_manager=Depends(get_key_manager), key_arg="api_key")
 async def generate_content(
         model_name: str,
         request: GeminiRequest,
         _=Depends(security_service.verify_goog_api_key),
-        api_key: str = Depends(key_manager.get_next_working_key),
+        api_key: str = Depends(get_next_working_key_wrapper),
+        key_manager: KeyManager = Depends(get_key_manager)
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
     """非流式生成内容"""
@@ -69,12 +77,13 @@ async def generate_content(
 
 @router.post("/models/{model_name}:streamGenerateContent")
 @router_v1beta.post("/models/{model_name}:streamGenerateContent")
-@RetryHandler(max_retries=3, key_manager=key_manager, key_arg="api_key")
+@RetryHandler(max_retries=3, key_manager=Depends(get_key_manager), key_arg="api_key")
 async def stream_generate_content(
         model_name: str,
         request: GeminiRequest,
         _=Depends(security_service.verify_goog_api_key),
-        api_key: str = Depends(key_manager.get_next_working_key),
+        api_key: str = Depends(get_next_working_key_wrapper),
+        key_manager: KeyManager = Depends(get_key_manager)
 ):
     chat_service = GeminiChatService(settings.BASE_URL, key_manager)
     """流式生成内容"""

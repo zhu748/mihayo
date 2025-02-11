@@ -7,3 +7,4 @@ requests
 starlette
 uvicorn
 google-genai
+jinja2

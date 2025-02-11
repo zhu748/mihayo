@@ -4,6 +4,7 @@ from typing import Dict
 from app.core.logger import get_key_manager_logger
 from app.core.config import settings
 
+
 logger = get_key_manager_logger()
 
 
@@ -61,20 +62,44 @@ class KeyManager:
 
         return await self.get_next_working_key()
 
+    def get_fail_count(self, key: str) -> int:
+        """获取指定密钥的失败次数"""
+        return self.key_failure_counts.get(key, 0)
+
     async def get_keys_by_status(self) -> dict:
-        """获取分类后的API key列表"""
-        valid_keys = []
-        invalid_keys = []
+        """获取分类后的API key列表，包括失败次数"""
+        valid_keys = {}
+        invalid_keys = {}
         
         async with self.failure_count_lock:
             for key in self.api_keys:
-                masked_key = f"{key}"
-                if self.key_failure_counts[key] < self.MAX_FAILURES:
-                    valid_keys.append(masked_key)
+                fail_count = self.key_failure_counts[key]
+                if fail_count < self.MAX_FAILURES:
+                    valid_keys[key] = fail_count
                 else:
-                    invalid_keys.append(masked_key)
+                    invalid_keys[key] = fail_count
         
         return {
             "valid_keys": valid_keys,
             "invalid_keys": invalid_keys
         }
+        
+        
+_singleton_instance = None
+_singleton_lock = asyncio.Lock()
+
+async def get_key_manager_instance(api_keys: list = None) -> KeyManager:
+    """
+    获取 KeyManager 单例实例。
+
+    如果尚未创建实例，将使用提供的 api_keys 初始化 KeyManager。
+    如果已创建实例，则忽略 api_keys 参数，返回现有单例。
+    """
+    global _singleton_instance
+
+    async with _singleton_lock:
+        if _singleton_instance is None:
+            if api_keys is None:
+                raise ValueError("API keys are required to initialize the KeyManager")
+            _singleton_instance = KeyManager(api_keys)
+        return _singleton_instance
