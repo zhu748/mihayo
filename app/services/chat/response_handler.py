@@ -232,7 +232,9 @@ def _extract_text(response: Dict[str, Any], model: str, stream: bool = False) ->
                     else:
                         text = candidate["content"]["parts"][0]["text"]
             else:
-                text = candidate["content"]["parts"][0]["text"]
+                text = ""
+                for part in candidate["content"]["parts"]:
+                    text += part["text"]
             text = _add_search_link_text(model, candidate, text)
         else:
             text = "暂无返回"
