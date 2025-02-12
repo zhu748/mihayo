@@ -552,14 +552,25 @@
             });
         }
 
-        // 监听窗口滚动事件来显示/隐藏滚动按钮
-        window.addEventListener('scroll', function() {
+        // 监听container高度变化来显示/隐藏滚动按钮
+        function updateScrollButtons() {
+            const container = document.querySelector('.container');
             const scrollButtons = document.querySelector('.scroll-buttons');
-            if (window.scrollY > 100) {
-                scrollButtons.style.display = 'flex';
+            if (container.scrollHeight > container.clientHeight) {
+            scrollButtons.style.display = 'flex';
             } else {
-                scrollButtons.style.display = 'none';
+            scrollButtons.style.display = 'none';
             }
+        }
+
+        // 初始检查
+        updateScrollButtons();
+
+        // 监听展开/折叠事件
+        document.querySelectorAll('.key-list h2').forEach(header => {
+            header.addEventListener('click', () => {
+            setTimeout(updateScrollButtons, 300); // 等待展开动画完成
+            });
         });
         function refreshPage(button) {
             button.classList.add('loading');
