@@ -11,14 +11,9 @@
             font-family: 'Roboto', sans-serif;
             line-height: 1.6;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
         }
         .container {
             max-width: 900px;
@@ -28,14 +23,8 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.2);
             backdrop-filter: blur(10px);
-            max-height: 80vh;
-            overflow-y: scroll;
             position: relative;
-            scrollbar-width: none;  /* Firefox */
-            -ms-overflow-style: none;  /* IE and Edge */
-        }
-        .container::-webkit-scrollbar {
-            display: none;  /* Chrome, Safari, Opera */
+            margin: 20px auto;
         }
         h1 {
             color: #2c3e50;
@@ -381,31 +370,28 @@
         }
 
         function scrollToTop() {
-            const container = document.querySelector('.container');
-            container.scrollTo({
+            window.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
         }
 
         function scrollToBottom() {
-            const container = document.querySelector('.container');
-            container.scrollTo({
-                top: container.scrollHeight,
+            window.scrollTo({
+                top: document.documentElement.scrollHeight,
                 behavior: 'smooth'
             });
         }
 
-        // 监听滚动事件来显示/隐藏滚动按钮
-        document.querySelector('.container').addEventListener('scroll', function() {
+        // 监听窗口滚动事件来显示/隐藏滚动按钮
+        window.addEventListener('scroll', function() {
             const scrollButtons = document.querySelector('.scroll-buttons');
-            if (this.scrollTop > 100) {
+            if (window.scrollY > 100) {
                 scrollButtons.style.display = 'flex';
             } else {
                 scrollButtons.style.display = 'none';
             }
         });
-
     </script>
 </body>
 </html>
