@@ -31,6 +31,14 @@
             backdrop-filter: blur(10px);
             position: relative;
             margin: 20px auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        
+        .container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
         }
 
         @media (max-width: 768px) {
@@ -154,13 +162,17 @@
         }
         
         .key-list .key-content {
-            transition: max-height 0.3s ease-out;
+            transition: all 0.3s ease-out;
             overflow: hidden;
-            max-height: 2000px;
+            height: auto;
+            opacity: 1;
         }
         
         .key-list .key-content.collapsed {
-            max-height: 0;
+            height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
         }
         ul {
             list-style-type: none;
@@ -288,13 +300,13 @@
             position: fixed;
             right: 20px;
             bottom: 20px;
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 10px;
             z-index: 1000;
         }
         .scroll-btn {
-            background: rgba(118, 75, 162, 0.9);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             width: 40px;
             height: 40px;
@@ -310,7 +322,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         .scroll-btn:hover {
-            background: rgba(102, 126, 234, 0.9);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             transform: scale(1.1);
         }
         .scroll-btn:active {
@@ -525,15 +537,17 @@
         }
 
         function scrollToTop() {
-            window.scrollTo({
+            const container = document.querySelector('.container');
+            container.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
         }
-
+        
         function scrollToBottom() {
-            window.scrollTo({
-                top: document.documentElement.scrollHeight,
+            const container = document.querySelector('.container');
+            container.scrollTo({
+                top: container.scrollHeight,
                 behavior: 'smooth'
             });
         }
