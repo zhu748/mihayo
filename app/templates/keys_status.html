@@ -26,6 +26,74 @@
             position: relative;
             margin: 20px auto;
         }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 100%;
+                padding: 20px;
+                margin: 10px auto;
+            }
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .key-list h2 {
+                font-size: 1.2em;
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            .key-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            li {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .copy-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .key-text {
+                word-break: break-all;
+            }
+            .scroll-buttons {
+                right: 10px;
+                bottom: 10px;
+            }
+            .scroll-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .key-list {
+                padding: 15px;
+            }
+            .status-badge {
+                padding: 3px 8px;
+                font-size: 0.8em;
+            }
+            .fail-count {
+                font-size: 0.8em;
+            }
+            .total {
+                font-size: 1em;
+                padding: 12px 20px;
+            }
+        }
         h1 {
             color: #2c3e50;
             text-align: center;
