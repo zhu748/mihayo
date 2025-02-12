@@ -141,6 +141,26 @@
             font-size: 1.5em;
             padding-bottom: 10px;
             border-bottom: 2px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        
+        .key-list h2 .toggle-icon {
+            margin-right: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .key-list h2 .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .key-list .key-content {
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+            max-height: 2000px;
+        }
+        
+        .key-list .key-content.collapsed {
+            max-height: 0;
         }
         ul {
             list-style-type: none;
@@ -296,23 +316,80 @@
         .scroll-btn:active {
             transform: scale(0.95);
         }
+        .refresh-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(118, 75, 162, 0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        .refresh-btn i {
+            transition: transform 0.5s ease;
+        }
+
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .refresh-btn {
+                top: 10px;
+                right: 10px;
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <button class="refresh-btn" onclick="refreshPage(this)">
+            <i class="fas fa-sync-alt"></i> 刷新
+        </button>
         <h1>API密钥状态</h1>
         <div class="key-list">
-            <h2>
+            <h2 onclick="toggleSection(this, 'validKeys')">
                 <span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
                     <i class="fas fa-check-circle" style="color: #27ae60;"></i>
                     有效密钥
                 </span>
-                <button class="copy-btn" onclick="copyKeys('valid')">
+                <button class="copy-btn" onclick="event.stopPropagation(); copyKeys('valid')">
                     <i class="fas fa-copy"></i>
                     批量复制
                 </button>
             </h2>
-            <ul id="validKeys">
+            <div class="key-content">
+                <ul id="validKeys">
                 {% for key, fail_count in valid_keys.items() %}
                     <li>
                         <div class="key-info">
@@ -331,20 +408,23 @@
                         </button>
                     </li>
                 {% endfor %}
-            </ul>
+                </ul>
+            </div>
         </div>
         <div class="key-list">
-            <h2>
+            <h2 onclick="toggleSection(this, 'invalidKeys')">
                 <span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
                     <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
                     无效密钥
                 </span>
-                <button class="copy-btn" onclick="copyKeys('invalid')">
+                <button class="copy-btn" onclick="event.stopPropagation(); copyKeys('invalid')">
                     <i class="fas fa-copy"></i>
                     批量复制
                 </button>
             </h2>
-            <ul id="invalidKeys">
+            <div class="key-content">
+                <ul id="invalidKeys">
                 {% for key, fail_count in invalid_keys.items() %}
                     <li>
                         <div class="key-info">
@@ -363,7 +443,8 @@
                         </button>
                     </li>
                 {% endfor %}
-            </ul>
+                </ul>
+            </div>
         </div>
         <div class="total">
             <i class="fas fa-key"></i> 总密钥数：{{ total }}
@@ -466,8 +547,25 @@
                 scrollButtons.style.display = 'none';
             }
         });
+        function refreshPage(button) {
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            // 添加延迟以显示加载动画
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
+        }
     </script>
     <script>
+        function toggleSection(header, sectionId) {
+            const toggleIcon = header.querySelector('.toggle-icon');
+            const content = header.nextElementSibling;
+            
+            toggleIcon.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/service-worker.js')
