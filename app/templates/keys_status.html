@@ -5,107 +5,189 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API密钥状态</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
         .container {
             max-width: 900px;
-            width: 90%;
-            background: white;
+            width: 95%;
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-        .container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
         }
         h1 {
             color: #2c3e50;
             text-align: center;
             margin-bottom: 30px;
             font-weight: 700;
+            font-size: 32px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
         }
         .key-list {
             margin-bottom: 30px;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
+            background: rgba(248, 249, 250, 0.9);
+            padding: 25px;
+            border-radius: 15px;
             transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.1);
         }
         .key-list:hover {
-            background: #e9ecef;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .key-list h2 {
             color: #2c3e50;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 1.5em;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
         }
         ul {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
         li {
             background: white;
-            border: 1px solid #e0e0e0;
-            margin-bottom: 10px;
-            padding: 12px;
-            border-radius: 5px;
-            transition: all 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         li:hover {
             transform: translateX(5px);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        .total {
-            font-weight: bold;
-            margin-top: 20px;
-            text-align: center;
-            font-size: 1.2em;
+        .key-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        .key-text {
+            font-family: 'Roboto Mono', monospace;
             color: #2c3e50;
         }
+        .fail-count {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .fail-count i {
+            font-size: 12px;
+        }
         .copy-btn {
-            background-color: #3498db;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 8px 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         .copy-btn:hover {
-            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+        }
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        .copy-btn i {
+            font-size: 14px;
+        }
+        .total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         #copyStatus {
-            text-align: center;
-            margin-top: 20px;
-            color: #27ae60;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
             font-weight: bold;
             opacity: 0;
             transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        .fail-count {
-            color: #e74c3c;
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
             font-size: 0.9em;
-            margin-left: 10px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .status-valid {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+        .status-invalid {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .key-list {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        .key-list:nth-child(2) {
+            animation-delay: 0.2s;
         }
     </style>
 </head>
@@ -114,36 +196,70 @@
         <h1>API密钥状态</h1>
         <div class="key-list">
             <h2>
-                有效密钥
-                <button class="copy-btn" onclick="copyKeys('valid')">一键复制</button>
+                <span>
+                    <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                    有效密钥
+                </span>
+                <button class="copy-btn" onclick="copyKeys('valid')">
+                    <i class="fas fa-copy"></i>
+                    批量复制
+                </button>
             </h2>
             <ul id="validKeys">
                 {% for key, fail_count in valid_keys.items() %}
                     <li>
-                        <span>{{ key }}</span>
-                        <span class="fail-count">(失败次数: {{ fail_count }})</span>
-                        <button class="copy-btn" onclick="copyKey('{{ key }}')">复制</button>
+                        <div class="key-info">
+                            <span class="status-badge status-valid">
+                                <i class="fas fa-check"></i> 有效
+                            </span>
+                            <span class="key-text">{{ key }}</span>
+                            <span class="fail-count">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                失败: {{ fail_count }}
+                            </span>
+                        </div>
+                        <button class="copy-btn" onclick="copyKey('{{ key }}')">
+                            <i class="fas fa-copy"></i>
+                            复制
+                        </button>
                     </li>
                 {% endfor %}
             </ul>
         </div>
         <div class="key-list">
             <h2>
-                无效密钥
-                <button class="copy-btn" onclick="copyKeys('invalid')">一键复制</button>
+                <span>
+                    <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                    无效密钥
+                </span>
+                <button class="copy-btn" onclick="copyKeys('invalid')">
+                    <i class="fas fa-copy"></i>
+                    批量复制
+                </button>
             </h2>
             <ul id="invalidKeys">
                 {% for key, fail_count in invalid_keys.items() %}
                     <li>
-                        <span>{{ key }}</span>
-                        <span class="fail-count">(失败次数: {{ fail_count }})</span>
-                        <button class="copy-btn" onclick="copyKey('{{ key }}')">复制</button>
+                        <div class="key-info">
+                            <span class="status-badge status-invalid">
+                                <i class="fas fa-times"></i> 无效
+                            </span>
+                            <span class="key-text">{{ key }}</span>
+                            <span class="fail-count">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                失败: {{ fail_count }}
+                            </span>
+                        </div>
+                        <button class="copy-btn" onclick="copyKey('{{ key }}')">
+                            <i class="fas fa-copy"></i>
+                            复制
+                        </button>
                     </li>
                 {% endfor %}
             </ul>
         </div>
         <div class="total">
-            总密钥数：{{ total }}
+            <i class="fas fa-key"></i> 总密钥数：{{ total }}
         </div>
         <div id="copyStatus"></div>
     </div>
@@ -177,12 +293,12 @@
         }
 
         function copyKeys(type) {
-            const keys = Array.from(document.querySelectorAll(`#${type}Keys li span:first-child`)).map(span => span.textContent.trim());
+            const keys = Array.from(document.querySelectorAll(`#${type}Keys .key-text`)).map(span => span.textContent.trim());
             const jsonKeys = JSON.stringify(keys);
             
             copyToClipboard(jsonKeys)
                 .then(() => {
-                    showCopyStatus(`已成功复制 ${type === 'valid' ? '有效' : '无效'} 密钥到剪贴板`);
+                    showCopyStatus(`已成功复制${type === 'valid' ? '有效' : '无效'}密钥到剪贴板`);
                 })
                 .catch((err) => {
                     console.error('无法复制文本: ', err);
