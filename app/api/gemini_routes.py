@@ -47,7 +47,7 @@ async def list_models(_=Depends(security_service.verify_key),
 
 @router.post("/models/{model_name}:generateContent")
 @router_v1beta.post("/models/{model_name}:generateContent")
-@RetryHandler(max_retries=3, key_manager=Depends(get_key_manager), key_arg="api_key")
+@RetryHandler(max_retries=3, key_arg="api_key")
 async def generate_content(
         model_name: str,
         request: GeminiRequest,
@@ -77,7 +77,7 @@ async def generate_content(
 
 @router.post("/models/{model_name}:streamGenerateContent")
 @router_v1beta.post("/models/{model_name}:streamGenerateContent")
-@RetryHandler(max_retries=3, key_manager=Depends(get_key_manager), key_arg="api_key")
+@RetryHandler(max_retries=3, key_arg="api_key")
 async def stream_generate_content(
         model_name: str,
         request: GeminiRequest,
