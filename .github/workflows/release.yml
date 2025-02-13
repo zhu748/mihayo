@@ -20,6 +20,7 @@ jobs:
 
       # Step 2: 使用 release-drafter 生成发布说明
       - name: Generate Release Notes
+        id: release-drafter
         uses: release-drafter/release-drafter@v5
         with:
           config-name: release-drafter.yml
@@ -36,7 +37,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           release_name: ${{ github.ref_name }}
-          body_path: CHANGELOG.md
+          body: ${{ steps.release-drafter.outputs.body }}
           draft: false
           prerelease: false
       
