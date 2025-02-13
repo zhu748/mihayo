@@ -37,22 +37,21 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           release_name: ${{ github.ref_name }}
-          body: ${{ steps.release-drafter.outputs.body }}
           draft: false
           prerelease: false
       
-      # Step 4: 构建zip文件
+      # Step 3: 可选，构建zip文件
       - name: Create ZIP file
         run: |
           zip -r gemini-balance.zip . -x "*.git*" "*.github*" "*.env*" "logs/*" "tests/*"
 
-      # Step 5: 上传构建文件
+      # Step 4: 可选，上传构建文件
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gemini-balance.zip
-          asset_name: gemini-balance.zip
+          asset_path: ./gemini-balance.zip # 替换为你的构建文件路径
+          asset_name: gemini-balance.zip  # 替换为你的文件名
           asset_content_type: application/zip
