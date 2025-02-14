@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 
 from app.core.config import settings
 from app.core.logger import get_gemini_logger
 from app.core.security import SecurityService
-from app.schemas.gemini_models import GeminiRequest
+from app.schemas.gemini_models import GeminiContent, GeminiRequest
 from app.services.gemini_chat_service import GeminiChatService
 from app.services.key_manager import KeyManager, get_key_manager_instance
 from app.services.model_service import ModelService
@@ -102,3 +102,30 @@ async def stream_generate_content(
 
     except Exception as e:
         logger.error(f"Streaming request failed: {str(e)}")
+
+
+@router.post("/verify-key/{api_key}")
+async def verify_key(api_key: str):
+    key_manager = await get_key_manager()
+    chat_service = GeminiChatService(settings.BASE_URL, key_manager)
+    """验证Gemini API密钥的有效性"""
+    logger.info("-" * 50 + "verify_gemini_key" + "-" * 50)
+    logger.info("Verifying API key validity")
+    
+    try:
+        # 使用generate_content接口测试key的有效性
+        gemini_requset = GeminiRequest(
+            contents=[
+                GeminiContent(
+                    role="user",
+                    parts=[{"text": "hi"}]
+                )
+            ]
+        )
+        response = chat_service.generate_content(settings.TEST_MODEL,gemini_requset, api_key)
+        if response:
+            return JSONResponse({"status": "valid"})
+        return JSONResponse({"status": "invalid"})
+    except Exception as e:
+        logger.error(f"Key verification failed: {str(e)}")
+        return JSONResponse({"status": "invalid", "error": str(e)})

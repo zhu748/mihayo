@@ -46,10 +46,16 @@
                                 失败: {{ fail_count }}
                             </span>
                         </div>
-                        <button class="copy-btn" onclick="copyKey('{{ key }}')">
-                            <i class="fas fa-copy"></i>
-                            复制
-                        </button>
+                        <div class="key-actions">
+                            <button class="verify-btn" onclick="verifyKey('{{ key }}', this)">
+                                <i class="fas fa-check-circle"></i>
+                                验证
+                            </button>
+                            <button class="copy-btn" onclick="copyKey('{{ key }}')">
+                                <i class="fas fa-copy"></i>
+                                复制
+                            </button>
+                        </div>
                     </li>
                 {% endfor %}
                 </ul>
@@ -81,10 +87,16 @@
                                 失败: {{ fail_count }}
                             </span>
                         </div>
-                        <button class="copy-btn" onclick="copyKey('{{ key }}')">
-                            <i class="fas fa-copy"></i>
-                            复制
-                        </button>
+                        <div class="key-actions">
+                            <button class="verify-btn" onclick="verifyKey('{{ key }}', this)">
+                                <i class="fas fa-check-circle"></i>
+                                验证
+                            </button>
+                            <button class="copy-btn" onclick="copyKey('{{ key }}')">
+                                <i class="fas fa-copy"></i>
+                                复制
+                            </button>
+                        </div>
                     </li>
                 {% endfor %}
                 </ul>

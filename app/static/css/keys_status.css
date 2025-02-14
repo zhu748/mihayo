@@ -154,7 +154,13 @@ li:hover {
     font-size: 12px;
 }
 
-.copy-btn {
+.key-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.verify-btn, .copy-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
@@ -167,6 +173,26 @@ li:hover {
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+.verify-btn {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+.verify-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+}
+
+.verify-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.verify-btn i {
+    font-size: 14px;
 }
 
 .copy-btn:hover {
@@ -199,8 +225,6 @@ li:hover {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(39, 174, 96, 0.95);
-    color: white;
     padding: 15px 30px;
     border-radius: 25px;
     font-weight: bold;
@@ -211,6 +235,15 @@ li:hover {
     z-index: 1000;
     text-align: center;
     min-width: 200px;
+    color: white;
+}
+
+#copyStatus.success {
+    background: rgba(39, 174, 96, 0.95);
+}
+
+#copyStatus.error {
+    background: rgba(231, 76, 60, 0.95);
 }
 
 .status-badge {
@@ -375,7 +408,12 @@ li:hover {
         flex-direction: column;
         gap: 10px;
     }
-    .copy-btn {
+    .key-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .verify-btn, .copy-btn {
         width: 100%;
         justify-content: center;
     }
