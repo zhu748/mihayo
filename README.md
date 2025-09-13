@@ -137,6 +137,8 @@ app/
 
 ### Gemini API Format (`/gemini/v1beta`)
 
+This endpoint is directly forwarded to official Gemini API format endpoint, without advanced features.
+
 *   `GET /models`: List available Gemini models.
 *   `POST /models/{model_name}:generateContent`: Generate content.
 *   `POST /models/{model_name}:streamGenerateContent`: Stream content generation.
@@ -145,12 +147,16 @@ app/
 
 #### Hugging Face (HF) Compatible
 
+If you want to use advanced features, like fake streaming, please use this endpoint.
+
 *   `GET /hf/v1/models`: List models.
 *   `POST /hf/v1/chat/completions`: Chat completion.
 *   `POST /hf/v1/embeddings`: Create text embeddings.
 *   `POST /hf/v1/images/generations`: Generate images.
 
 #### Standard OpenAI
+
+This endpoint is directly forwarded to official OpenAI Compatible API format endpoint, without advanced features.
 
 *   `GET /openai/v1/models`: List models.
 *   `POST /openai/v1/chat/completions`: Chat completion (Recommended).
@@ -214,6 +220,7 @@ app/
 | `UPLOAD_PROVIDER` | Image upload provider: `smms`, `picgo`, `cloudflare_imgbed` | `smms` |
 | `SMMS_SECRET_TOKEN` | SM.MS API Token | `your-smms-token` |
 | `PICGO_API_KEY` | PicoGo API Key | `your-picogo-apikey` |
+| `PICGO_API_URL` | PicoGo API Server URL | `https://www.picgo.net/api/1/upload` |
 | `CLOUDFLARE_IMGBED_URL` | CloudFlare ImgBed upload URL | `https://xxxxxxx.pages.dev/upload` |
 | `CLOUDFLARE_IMGBED_AUTH_CODE`| CloudFlare ImgBed auth key | `your-cloudflare-imgber-auth-code` |
 | `CLOUDFLARE_IMGBED_UPLOAD_FOLDER`| CloudFlare ImgBed upload folder | `""` |
